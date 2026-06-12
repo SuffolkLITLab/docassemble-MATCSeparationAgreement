@@ -76,6 +76,7 @@ objects:
   - other_parties: ALPeopleList.using(ask_number=False,target_number=1)
   - children: ALPeopleList.using(there_are_any=True)
   - users: ALPeopleList.using(there_are_any=True) 
+  - trial_court: MACourt
 ---
 features:
   navigation: True
@@ -1344,6 +1345,15 @@ code: |
   [user.address.address for user in users.complete_elements()]
   addresses_to_search = [user.address for user in users.complete_elements()]
 ---
+id: trial court division
+question: |
+  Court
+fields:
+  - "Which court will you file in?": trial_court.division
+    input type: combobox
+    choices:
+      - "Suffolk Probate and Family Court"
+---
 id: a divorce agreement review screen
 event: review_a_divorce_agreement
 question: |
@@ -1955,4 +1965,3 @@ attachment:
   skip undefined: True
   docx template file: a_divorce_agreement.docx
   tagged pdf: True
-
