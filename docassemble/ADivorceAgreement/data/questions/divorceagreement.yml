@@ -2,6 +2,7 @@
 include:
   - docassemble.AssemblyLine:assembly_line.yml
   - docassemble.ALMassachusetts:al_massachusetts.yml
+  - ma1a_portable_schema.yml
 ---
 metadata:
   title: >-
@@ -71,6 +72,7 @@ code: |
   al_form_type = "starts_case" 
 ---
 objects:
+  - petitioners: ALPeopleList.using(ask_number=False, target_number=2)
   - other_parties: ALPeopleList.using(ask_number=False,target_number=1)
   - children: ALPeopleList.using(there_are_any=True)
   - users: ALPeopleList.using(there_are_any=True) 
@@ -115,6 +117,7 @@ code: |
   allowed_courts = ['Probate and Family Court']
   user_role = "plaintiff"
   user_ask_role = "plaintiff"
+  ma1a_apply_portable_schema
 
   # Parties
   nav.set_section("parties")
@@ -272,6 +275,7 @@ code: |
   users[0].address.address
   signature_date
   docket_number
+  ma1a_export_portable_schema
 
   # Review
   nav.set_section("review_a_divorce_agreement")
@@ -1951,5 +1955,4 @@ attachment:
   skip undefined: True
   docx template file: a_divorce_agreement.docx
   tagged pdf: True
-
 
