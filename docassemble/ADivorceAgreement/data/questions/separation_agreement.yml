@@ -3,56 +3,6 @@ include:
   - docassemble.AssemblyLine:assembly_line.yml
   - docassemble.ALMassachusetts:al_massachusetts.yml
 ---
-metadata:
-  title: >-
-    1A Divorce Agreement
-  short title: >-
-    1A Divorce Agreement
-  description: |-
-    This interview helps someone in Massachusetts 1A Divorce Agreement.
-  can_I_use_this_form: |
-    If you are a  co-petitioner, you can use this interview to complete and file a 1A agreement.
-  before_you_start: |
-    This interview will help you 1A Divorce Agreement.
-    
-    Before you get started, please gather:
-    
-    1. 
-    1. 
-    1. 
-    
-    When you are finished, you will need to:
-    
-    1. 
-    1.
-  maturity: production
-  estimated_completion_minutes: 30
-  estimated_completion_delta: 5
-  LIST_topics: 
-    - "BU-00-00-00-00"
-    - "FA-00-00-00-00"
-    - "FA-06-00-00-00"
-  tags:
-    - "BU-00-00-00-00"
-    - "FA-00-00-00-00"
-    - "FA-06-00-00-00"
-  authors:
-  original_form: []
-  original_form_published_on: ""
-  allowed_courts: 
-    - "Probate and Family Court"
-  typical_role: "plaintiff"
-  al_weaver_version: "1.11.0"
-  generated_on: "2026-01-27"
-  languages:
-    - en
-  jurisdiction: NAM-US-US+MA
-  review_date: 2026-01-27
-  form_titles:
-    - 1A Divorce Agreement
-  form_numbers: []
-  update_notes: |
----
 code: |
   # This controls the default country and list of states in address field questions
   AL_DEFAULT_COUNTRY = "US"
@@ -61,51 +11,11 @@ code: |
   # This controls the default state in address field questions
   AL_DEFAULT_STATE = "MA"
 ---
-code: |
-  github_repo_name =  'docassemble-ADivorceAgreement'
----
-code: |
-  interview_short_title = "1A Divorce Agreement"
----
-code: |
-  al_form_type = "starts_case" 
----
 objects:
   - other_parties: ALPeopleList.using(ask_number=False,target_number=1)
   - children: ALPeopleList.using(there_are_any=True)
   - users: ALPeopleList.using(there_are_any=True) 
 ---
-features:
-  navigation: True
-  progress bar: True
-  small screen navigation: dropdown
----
-code: |
-  enable_al_nav_sections = False
----
-sections:
-  - intro: Start
-  - parties: Parties
-  - children_overview: Children
-  - child_info: Child information
-  - child_custody: Custody
-  - parenting_time: Parenting time
-  - adult_health_insurance: Health insurance
-  - child_health_insurance: Children's health insurance
-  - education: Education costs
-  - taxes: Taxes
-  - child_tax: Child tax claim
-  - life_insurance: Life insurance
-  - alimony: Alimony
-  - real_estate: Real estate
-  - personal_property: Personal property
-  - debts: Debts and liabilities
-  - retirement: Retirement
-  - merger: Merger / survival
-  - court_info: Court and signatures
-  - review_a_divorce_agreement: Review your answers
----
-
 #################### Interview order #####################
 
 comment: |
@@ -278,27 +188,6 @@ code: |
 
   interview_order_a_divorce_agreement = True
 ---
----
-###################### Main order ######################
-comment: |
-  This block includes the logic for standalone interviews.
-  Delete mandatory: True to include in another interview
-mandatory: True
-code: |
-  al_intro_screen
-  a_divorce_agreement_intro
-  interview_order_a_divorce_agreement
-  signature_date
-  # Store anonymous data for analytics / statistics
-  store_variables_snapshot(
-      persistent=True,
-      data={
-          "zip": showifdef("users[0].address.zip"),
-          "reached_interview_end": True,
-      },
-  )
-  a_divorce_agreement_download
----
 id: A_Divorce_Agreement
 continue button field: a_divorce_agreement_intro
 question: |
@@ -444,7 +333,7 @@ code: |
   custody_joint_legal_split_physical = (custody_type_choice == "Joint legal custody, one parent has physical custody")
   custody_sole = (custody_type_choice == "One parent has sole legal and physical custody")
 
---- 
+---
 id: Parenting time
 question: | 
   Parenting Time 
@@ -683,13 +572,6 @@ fields:
       variable: health_insurance_custom_terms_adult
       is: True
       
----  
-mandatory: True
-code: |
-  health_insurance_custom_terms_adult
-  if not health_insurance_custom_terms_adult:
-    health_insurance_no_agreement_exit
---- 
 event: health_insurance_no_agreement_exit
 question: |
   You cannot continue with this section
@@ -701,7 +583,7 @@ subquestion: |
   or ask the court to decide this issue.
 buttons:
   - Exit: exit
---- 
+---
 id: Children Health Insurance agreement
 question: |
   Children's Health Insurance
@@ -1925,13 +1807,12 @@ progress: 100
 ---
 # ALDocument objects specify the metadata for each template
 objects:
-  - a_divorce_agreement_Post_interview_instructions: ALDocument.using(title="Instructions", filename="a_divorce_agreement_next_steps.docx", enabled=True, has_addendum=False)
-  - a_divorce_agreement_attachment: ALDocument.using(title="1A Divorce Agreement", filename="a_divorce_agreement", enabled=True, has_addendum=False, )
+  - a_divorce_agreement_Post_interview_instructions: ALDocument.using(title="Instructions", filename="a_divorce_agreement_next_steps.docx", has_addendum=False)
+  - a_divorce_agreement_attachment: ALDocument.using(title="1A Divorce Agreement", filename="a_divorce_agreement", has_addendum=False, )
 ---
-# Bundles group the ALDocuments into separate downloads, such as for court and for the user
-objects:
-  - al_user_bundle: ALDocumentBundle.using(elements=[a_divorce_agreement_Post_interview_instructions, a_divorce_agreement_attachment], filename="a_divorce_agreement", title="All forms to download for your records", enabled=True)
-  - al_court_bundle: ALDocumentBundle.using(elements=[a_divorce_agreement_attachment],  filename="a_divorce_agreement", title="All forms to deliver to court", enabled=True)
+code: |
+  a_divorce_agreement_Post_interview_instructions.enabled = True
+  a_divorce_agreement_attachment.enabled = True
 ---
 # Each attachment defines a key in an ALDocument. We use `i` as the placeholder here so the same template is 
 # used for "preview" and "final" keys, and logic in the template checks the value of 
@@ -1951,5 +1832,4 @@ attachment:
   skip undefined: True
   docx template file: a_divorce_agreement.docx
   tagged pdf: True
-
 
