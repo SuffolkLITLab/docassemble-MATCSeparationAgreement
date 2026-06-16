@@ -12,9 +12,8 @@ code: |
   al_form_type = "starts_case" 
 ---
 objects:
-  - other_parties: ALPeopleList.using(ask_number=False,target_number=1)
   - children: ALPeopleList.using(there_are_any=True)
-  - users: ALPeopleList.using(there_are_any=True)
+  - users: ALPeopleList.using(ask_number=False, target_number=2)
 ---
 code: |
   a_divorce_agreement_Post_interview_instructions.enabled = True

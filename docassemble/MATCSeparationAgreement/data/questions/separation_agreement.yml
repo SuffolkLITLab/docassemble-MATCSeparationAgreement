@@ -24,6 +24,8 @@ code: |
   # Parties
   nav.set_section("parties")
   users.gather()
+  users[0].separation_agreement_role
+  set_separation_agreement_roles
   set_parts(subtitle=str(users))
 
   # Children overview
@@ -91,7 +93,7 @@ code: |
       # Children's life insurance
       nav.set_section("life_insurance")
       users1_life_insurance_required
-      other_parties1_life_insurance_required
+      users2_life_insurance_required
       neither_party_life_insurance
 
   # Adult health insurance
@@ -154,7 +156,7 @@ code: |
   individual_debt_responsible_each
   if not individual_debt_responsible_each:
       users[0].debt_listed
-      other_parties[0].debt_listed
+      users[1].debt_listed
 
   # Retirement
   nav.set_section("retirement")
@@ -172,8 +174,8 @@ code: |
   # Court info
   nav.set_section("court_info")
   trial_court.division
-  other_parties.gather()
-  other_parties[0].address.address
+  users.gather()
+  users[1].address.address
   users[0].address.address
   signature_date
   docket_number
@@ -182,6 +184,37 @@ code: |
   nav.set_section("review_a_divorce_agreement")
 
   interview_order_a_divorce_agreement = True
+---
+code: |
+  if users[0].separation_agreement_role == "party_a":
+    users[1].separation_agreement_role = "party_b"
+  else:
+    users[1].separation_agreement_role = "party_a"
+  for user in users:
+    user.party_label = "Party A" if user.separation_agreement_role == "party_a" else "Party B"
+  set_separation_agreement_roles = True
+---
+id: separation agreement party roles
+question: |
+  What role does ${ users[0] } have in the separation agreement?
+fields:
+  - no label: users[0].separation_agreement_role
+    datatype: radio
+    choices:
+      - Party A: party_a
+      - Party B: party_b
+---
+initial: True
+code: |
+  def separation_agreement_user(role):
+    for user in users:
+      if getattr(user, "separation_agreement_role", None) == role:
+        return user
+    return users[0] if role == "party_a" else users[1]
+---
+code: |
+  party_a = separation_agreement_user("party_a")
+  party_b = separation_agreement_user("party_b")
 ---
 id: A_Divorce_Agreement
 continue button field: a_divorce_agreement_intro
@@ -1087,7 +1120,7 @@ fields:
     show if: 
       variable: users[0].debt_listed
       is: True 
-  - "Does Party B have debts or liabilities?": other_parties[0].debt_listed
+  - "Does Party B have debts or liabilities?": users[1].debt_listed
     input type: button
     choices: 
       - Yes: True
@@ -1095,9 +1128,9 @@ fields:
     show if:
       variable: individual_debt_responsible_each
       is: No
-  - "If Party B has debts and liabilities, what are they?": other_parties[0].debt_description
+  - "If Party B has debts and liabilities, what are they?": users[1].debt_description
     show if: 
-      variable: other_parties[0].debt_listed
+      variable: users[1].debt_listed
       is: Yes
 ---
 id: Pension and Retirement Plans
@@ -1160,7 +1193,7 @@ subquestion: |
 fields:
   - "Party A is keeping their current life insurance and naming the children as the beneficiaries": users1_life_insurance_required
     datatype: yesno
-  - "Party B is keeping their current life insurance and naming the children as beneficiaries": other_parties1_life_insurance_required
+  - "Party B is keeping their current life insurance and naming the children as beneficiaries": users2_life_insurance_required
     datatype: yesno
   - "Neither Party has life insurance": neither_party_life_insurance
     datatype: yesno
@@ -1188,7 +1221,7 @@ question: |
 fields:
   - "What are Party A’s initials?": users1_initials
     input type: area
-  - "Other parties1 initials": other_parties1_initials
+  - "Party B initials": users2_initials
     input type: area
 ---
 id: preview a_divorce_agreement
@@ -1208,7 +1241,7 @@ subquestion: |
 continue button field: a_divorce_agreement_preview_question    
 ---
 code: |
-  signature_fields = ['other_parties[0].signature', 'users[0].signature']
+  signature_fields = ['party_b.signature', 'party_a.signature']
 ---
 code: |
   # This is a placeholder for the addresses that will be searched
@@ -1250,10 +1283,10 @@ review:
     button: |
       **What is your agreement for debts and liabilities?**:
       ${ debt_custom_description }
-  - Edit: other_parties1_life_insurance_required
+  - Edit: users2_life_insurance_required
     button: |
       **Will Party B shall maintain in full force and effect their present life insurance on their life, with the child(ren) of the parties, or a trust for the benefit of the child(ren) of the parties, as beneficiary?**:
-      ${ word(yesno(other_parties1_life_insurance_required)) }
+      ${ word(yesno(users2_life_insurance_required)) }
   - Edit: parenting_time_description
     button: |
       **Describe the parenting time arrangement**:
@@ -1423,11 +1456,11 @@ review:
     button: |
       **Do you have custom terms for the child(ren)'s health insurance?**:
       ${ word(yesno(health_insurance_custom_terms_children)) }
-  - Edit: other_parties.revisit
+  - Edit: users.revisit
     button: |
-      **Other parties**
+      **Spouses**
 
-      % for item in other_parties:
+      % for item in users:
         * ${ item }
       % endfor
   - Edit: no_real_estate
@@ -1578,10 +1611,10 @@ review:
     button: |
       **How often will alimony payments be made?**:
       ${ alimony_frequency }
-  - Edit: other_parties1_initials
+  - Edit: users2_initials
     button: |
-      **Other parties1 initials**:
-      > ${ single_paragraph(other_parties1_initials) }
+      **Party B initials**:
+      > ${ single_paragraph(users2_initials) }
   - Edit: child.birthdate
     button: |
       **What is your child’s date of birth?**:
@@ -1751,16 +1784,16 @@ edit:
 confirm: True
 
 ---
-continue button field: other_parties.revisit
+continue button field: users.revisit
 question: |
-  Edit other_parties
+  Edit users
 subquestion: |
-  ${ other_parties.table }
+  ${ users.table }
 
-  ${ other_parties.add_action() }
+  ${ users.add_action() }
 ---
-table: other_parties.table
-rows: other_parties
+table: users.table
+rows: users
 columns:
   - Address: |
       row_item.address.block() if defined("row_item.address.address") else ""
