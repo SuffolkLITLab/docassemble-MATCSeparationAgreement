@@ -43,10 +43,10 @@ def find_package_data(where='.', package='', exclude=standard_exclude, exclude_d
                 out.setdefault(package, []).append(prefix+name)
     return out
 
-setup(name='docassemble.ADivorceAgreement',
+setup(name='docassemble.MATCSeparationAgreement',
       version='1.0',
       description=('1A Divorce Agreement'),
-      long_description='# docassemble.ADivorceAgreement\r\n\r\n1A Divorce Agreement\r\n\r\n## Author\r\n\r\nauthor@example.com\r\n\r\n',
+      long_description='# docassemble.MATCSeparationAgreement\r\n\r\n1A Divorce Agreement\r\n\r\n## Author\r\n\r\nauthor@example.com\r\n\r\n',
       long_description_content_type='text/markdown',
       author='',
       author_email='alara.akisik@su.suffolk.edu',
@@ -55,5 +55,5 @@ setup(name='docassemble.ADivorceAgreement',
       packages=find_namespace_packages(),
       install_requires=['docassemble.ALMassachusetts>=0.2.0', 'docassemble.AssemblyLine @ git+https://github.com/SuffolkLITLab/docassemble-AssemblyLine.git@main'],
       zip_safe=False,
-      package_data=find_package_data(where='docassemble/ADivorceAgreement/', package='docassemble.ADivorceAgreement'),
+      package_data=find_package_data(where='docassemble/MATCSeparationAgreement/', package='docassemble.MATCSeparationAgreement'),
      )

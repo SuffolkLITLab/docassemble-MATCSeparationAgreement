@@ -5,7 +5,7 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "docassemble.ADivorceAgreement"
+name = "docassemble.MATCSeparationAgreement"
 version = "1.0"
 description = "1A Divorce Agreement"
 readme = "README.md"

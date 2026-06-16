@@ -11,11 +11,6 @@ code: |
   # This controls the default state in address field questions
   AL_DEFAULT_STATE = "MA"
 ---
-objects:
-  - other_parties: ALPeopleList.using(ask_number=False,target_number=1)
-  - children: ALPeopleList.using(there_are_any=True)
-  - users: ALPeopleList.using(there_are_any=True) 
----
 #################### Interview order #####################
 
 comment: |
@@ -1810,10 +1805,6 @@ objects:
   - a_divorce_agreement_Post_interview_instructions: ALDocument.using(title="Instructions", filename="a_divorce_agreement_next_steps.docx", has_addendum=False)
   - a_divorce_agreement_attachment: ALDocument.using(title="1A Divorce Agreement", filename="a_divorce_agreement", has_addendum=False, )
 ---
-code: |
-  a_divorce_agreement_Post_interview_instructions.enabled = True
-  a_divorce_agreement_attachment.enabled = True
----
 # Each attachment defines a key in an ALDocument. We use `i` as the placeholder here so the same template is 
 # used for "preview" and "final" keys, and logic in the template checks the value of 
 # `i` to show or hide the user's signature
@@ -1832,4 +1823,3 @@ attachment:
   skip undefined: True
   docx template file: a_divorce_agreement.docx
   tagged pdf: True
-

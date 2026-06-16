@@ -3,13 +3,22 @@ include:
   - separation_agreement.yml
 ---
 code: |
-  github_repo_name =  'docassemble-ADivorceAgreement'
+  github_repo_name =  'docassemble-MATCSeparationAgreement'
 ---
 code: |
   interview_short_title = "1A Divorce Agreement"
 ---
 code: |
   al_form_type = "starts_case" 
+---
+objects:
+  - other_parties: ALPeopleList.using(ask_number=False,target_number=1)
+  - children: ALPeopleList.using(there_are_any=True)
+  - users: ALPeopleList.using(there_are_any=True)
+---
+code: |
+  a_divorce_agreement_Post_interview_instructions.enabled = True
+  a_divorce_agreement_attachment.enabled = True
 ---
 # Bundles group the ALDocuments into separate downloads, such as for court and for the user
 objects:
