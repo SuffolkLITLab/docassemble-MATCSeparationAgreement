@@ -1,5 +1,5 @@
 include README.md
-graft docassemble/ADivorceAgreement/data
+graft docassemble/MATCSeparationAgreement/data
 recursive-exclude * *.egg-info
 recursive-exclude .git *
 recursive-exclude venv *

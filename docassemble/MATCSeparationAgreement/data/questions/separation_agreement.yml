@@ -3,56 +3,6 @@ include:
   - docassemble.AssemblyLine:assembly_line.yml
   - docassemble.ALMassachusetts:al_massachusetts.yml
 ---
-metadata:
-  title: >-
-    1A Divorce Agreement
-  short title: >-
-    1A Divorce Agreement
-  description: |-
-    This interview helps someone in Massachusetts 1A Divorce Agreement.
-  can_I_use_this_form: |
-    If you are a  co-petitioner, you can use this interview to complete and file a 1A agreement.
-  before_you_start: |
-    This interview will help you 1A Divorce Agreement.
-    
-    Before you get started, please gather:
-    
-    1. 
-    1. 
-    1. 
-    
-    When you are finished, you will need to:
-    
-    1. 
-    1.
-  maturity: production
-  estimated_completion_minutes: 30
-  estimated_completion_delta: 5
-  LIST_topics: 
-    - "BU-00-00-00-00"
-    - "FA-00-00-00-00"
-    - "FA-06-00-00-00"
-  tags:
-    - "BU-00-00-00-00"
-    - "FA-00-00-00-00"
-    - "FA-06-00-00-00"
-  authors:
-  original_form: []
-  original_form_published_on: ""
-  allowed_courts: 
-    - "Probate and Family Court"
-  typical_role: "plaintiff"
-  al_weaver_version: "1.11.0"
-  generated_on: "2026-01-27"
-  languages:
-    - en
-  jurisdiction: NAM-US-US+MA
-  review_date: 2026-01-27
-  form_titles:
-    - 1A Divorce Agreement
-  form_numbers: []
-  update_notes: |
----
 code: |
   # This controls the default country and list of states in address field questions
   AL_DEFAULT_COUNTRY = "US"
@@ -61,51 +11,6 @@ code: |
   # This controls the default state in address field questions
   AL_DEFAULT_STATE = "MA"
 ---
-code: |
-  github_repo_name =  'docassemble-ADivorceAgreement'
----
-code: |
-  interview_short_title = "1A Divorce Agreement"
----
-code: |
-  al_form_type = "starts_case" 
----
-objects:
-  - other_parties: ALPeopleList.using(ask_number=False,target_number=1)
-  - children: ALPeopleList.using(there_are_any=True)
-  - users: ALPeopleList.using(there_are_any=True) 
----
-features:
-  navigation: True
-  progress bar: True
-  small screen navigation: dropdown
----
-code: |
-  enable_al_nav_sections = False
----
-sections:
-  - intro: Start
-  - parties: Parties
-  - children_overview: Children
-  - child_info: Child information
-  - child_custody: Custody
-  - parenting_time: Parenting time
-  - adult_health_insurance: Health insurance
-  - child_health_insurance: Children's health insurance
-  - education: Education costs
-  - taxes: Taxes
-  - child_tax: Child tax claim
-  - life_insurance: Life insurance
-  - alimony: Alimony
-  - real_estate: Real estate
-  - personal_property: Personal property
-  - debts: Debts and liabilities
-  - retirement: Retirement
-  - merger: Merger / survival
-  - court_info: Court and signatures
-  - review_a_divorce_agreement: Review your answers
----
-
 #################### Interview order #####################
 
 comment: |
@@ -119,6 +24,8 @@ code: |
   # Parties
   nav.set_section("parties")
   users.gather()
+  users[0].separation_agreement_role
+  set_separation_agreement_roles
   set_parts(subtitle=str(users))
 
   # Children overview
@@ -186,7 +93,7 @@ code: |
       # Children's life insurance
       nav.set_section("life_insurance")
       users1_life_insurance_required
-      other_parties1_life_insurance_required
+      users2_life_insurance_required
       neither_party_life_insurance
 
   # Adult health insurance
@@ -249,7 +156,7 @@ code: |
   individual_debt_responsible_each
   if not individual_debt_responsible_each:
       users[0].debt_listed
-      other_parties[0].debt_listed
+      users[1].debt_listed
 
   # Retirement
   nav.set_section("retirement")
@@ -267,8 +174,8 @@ code: |
   # Court info
   nav.set_section("court_info")
   trial_court.division
-  other_parties.gather()
-  other_parties[0].address.address
+  users.gather()
+  users[1].address.address
   users[0].address.address
   signature_date
   docket_number
@@ -278,26 +185,28 @@ code: |
 
   interview_order_a_divorce_agreement = True
 ---
----
-###################### Main order ######################
-comment: |
-  This block includes the logic for standalone interviews.
-  Delete mandatory: True to include in another interview
-mandatory: True
 code: |
-  al_intro_screen
-  a_divorce_agreement_intro
-  interview_order_a_divorce_agreement
-  signature_date
-  # Store anonymous data for analytics / statistics
-  store_variables_snapshot(
-      persistent=True,
-      data={
-          "zip": showifdef("users[0].address.zip"),
-          "reached_interview_end": True,
-      },
-  )
-  a_divorce_agreement_download
+  if users[0].separation_agreement_role == "party_a":
+    users[1].separation_agreement_role = "party_b"
+    party_a = users[0]
+    party_b = users[1]
+  else:
+    users[1].separation_agreement_role = "party_a"
+    party_a = users[1]
+    party_b = users[0]
+  for user in users:
+    user.party_label = "Party A" if user.separation_agreement_role == "party_a" else "Party B"
+  set_separation_agreement_roles = True
+---
+id: separation agreement party roles
+question: |
+  What role does ${ users[0] } have in the separation agreement?
+fields:
+  - no label: users[0].separation_agreement_role
+    datatype: radio
+    choices:
+      - Party A: party_a
+      - Party B: party_b
 ---
 id: A_Divorce_Agreement
 continue button field: a_divorce_agreement_intro
@@ -306,10 +215,7 @@ question: |
 subquestion: |
   This interview will help you 1A Divorce Agreement.
 
- 
-    Learn more about divorce at: https://www.mass.gov/info-
-    details/massachusetts-law-about-divorce
-  
+    Learn more about divorce at: https://www.mass.gov/info-details/massachusetts-law-about-divorce
  
   Before you get started, please gather:
   
@@ -444,7 +350,7 @@ code: |
   custody_joint_legal_split_physical = (custody_type_choice == "Joint legal custody, one parent has physical custody")
   custody_sole = (custody_type_choice == "One parent has sole legal and physical custody")
 
---- 
+---
 id: Parenting time
 question: | 
   Parenting Time 
@@ -604,8 +510,7 @@ subquestion: |
 
     Learn more at: https://www.mass.gov/info-details/health-care-reform-for-individuals
 
-       Request an open enrollment waiver at: https://www.mass.gov/info-
-    details/request-an-open-enrollment-waiver
+    Request an open enrollment waiver at: https://www.mass.gov/info-details/request-an-open-enrollment-waiver
 
 fields: 
   - "Do you agree on how to handle health insurance": health_insurance_custom_terms_adult
@@ -683,13 +588,8 @@ fields:
       variable: health_insurance_custom_terms_adult
       is: True
       
----  
-mandatory: True
-code: |
-  health_insurance_custom_terms_adult
-  if not health_insurance_custom_terms_adult:
-    health_insurance_no_agreement_exit
---- 
+---
+id: health_insurance_no_agreement_exit
 event: health_insurance_no_agreement_exit
 question: |
   You cannot continue with this section
@@ -701,7 +601,7 @@ subquestion: |
   or ask the court to decide this issue.
 buttons:
   - Exit: exit
---- 
+---
 id: Children Health Insurance agreement
 question: |
   Children's Health Insurance
@@ -737,7 +637,7 @@ fields:
       variable: health_insurance_provided_for_children
       is: False 
 ---
-id: 
+id: health_insurance_children_info
 question: | 
   Health Insurance for Children Info
 fields: 
@@ -965,6 +865,7 @@ fields:
       variable: taxes_fully_reported
       is: False
 ---
+id: taxes_no_agreement_exit
 event: taxes_no_agreement_exit
 question: |
   You cannot continue with this section
@@ -1210,7 +1111,7 @@ fields:
     show if: 
       variable: users[0].debt_listed
       is: True 
-  - "Does Party B have debts or liabilities?": other_parties[0].debt_listed
+  - "Does Party B have debts or liabilities?": users[1].debt_listed
     input type: button
     choices: 
       - Yes: True
@@ -1218,9 +1119,9 @@ fields:
     show if:
       variable: individual_debt_responsible_each
       is: No
-  - "If Party B has debts and liabilities, what are they?": other_parties[0].debt_description
+  - "If Party B has debts and liabilities, what are they?": users[1].debt_description
     show if: 
-      variable: other_parties[0].debt_listed
+      variable: users[1].debt_listed
       is: Yes
 ---
 id: Pension and Retirement Plans
@@ -1283,7 +1184,7 @@ subquestion: |
 fields:
   - "Party A is keeping their current life insurance and naming the children as the beneficiaries": users1_life_insurance_required
     datatype: yesno
-  - "Party B is keeping their current life insurance and naming the children as beneficiaries": other_parties1_life_insurance_required
+  - "Party B is keeping their current life insurance and naming the children as beneficiaries": users2_life_insurance_required
     datatype: yesno
   - "Neither Party has life insurance": neither_party_life_insurance
     datatype: yesno
@@ -1311,7 +1212,7 @@ question: |
 fields:
   - "What are Party A’s initials?": users1_initials
     input type: area
-  - "Other parties1 initials": other_parties1_initials
+  - "Party B initials": users2_initials
     input type: area
 ---
 id: preview a_divorce_agreement
@@ -1331,7 +1232,7 @@ subquestion: |
 continue button field: a_divorce_agreement_preview_question    
 ---
 code: |
-  signature_fields = ['other_parties[0].signature', 'users[0].signature']
+  signature_fields = ['party_b.signature', 'party_a.signature']
 ---
 code: |
   # This is a placeholder for the addresses that will be searched
@@ -1373,10 +1274,10 @@ review:
     button: |
       **What is your agreement for debts and liabilities?**:
       ${ debt_custom_description }
-  - Edit: other_parties1_life_insurance_required
+  - Edit: users2_life_insurance_required
     button: |
       **Will Party B shall maintain in full force and effect their present life insurance on their life, with the child(ren) of the parties, or a trust for the benefit of the child(ren) of the parties, as beneficiary?**:
-      ${ word(yesno(other_parties1_life_insurance_required)) }
+      ${ word(yesno(users2_life_insurance_required)) }
   - Edit: parenting_time_description
     button: |
       **Describe the parenting time arrangement**:
@@ -1546,11 +1447,11 @@ review:
     button: |
       **Do you have custom terms for the child(ren)'s health insurance?**:
       ${ word(yesno(health_insurance_custom_terms_children)) }
-  - Edit: other_parties.revisit
+  - Edit: users.revisit
     button: |
-      **Other parties**
+      **Spouses**
 
-      % for item in other_parties:
+      % for item in users:
         * ${ item }
       % endfor
   - Edit: no_real_estate
@@ -1701,10 +1602,10 @@ review:
     button: |
       **How often will alimony payments be made?**:
       ${ alimony_frequency }
-  - Edit: other_parties1_initials
+  - Edit: users2_initials
     button: |
-      **Other parties1 initials**:
-      > ${ single_paragraph(other_parties1_initials) }
+      **Party B initials**:
+      > ${ single_paragraph(users2_initials) }
   - Edit: child.birthdate
     button: |
       **What is your child’s date of birth?**:
@@ -1826,6 +1727,7 @@ review:
       **Have both you and your spouse agreed to give up any right to receive alimony now or in the future?**:
       ${ word(yesno(alimony_waived_all)) }
 ---
+id: edit_users
 continue button field: users.revisit
 question: |
   Edit users
@@ -1856,6 +1758,7 @@ edit:
 confirm: True
 
 ---
+id: edit_children
 continue button field: children.revisit
 question: |
   Edit children
@@ -1874,16 +1777,17 @@ edit:
 confirm: True
 
 ---
-continue button field: other_parties.revisit
+id: edit_users_alt
+continue button field: users.revisit
 question: |
-  Edit other_parties
+  Edit users
 subquestion: |
-  ${ other_parties.table }
+  ${ users.table }
 
-  ${ other_parties.add_action() }
+  ${ users.add_action() }
 ---
-table: other_parties.table
-rows: other_parties
+table: users.table
+rows: users
 columns:
   - Address: |
       row_item.address.block() if defined("row_item.address.address") else ""
@@ -1925,13 +1829,8 @@ progress: 100
 ---
 # ALDocument objects specify the metadata for each template
 objects:
-  - a_divorce_agreement_Post_interview_instructions: ALDocument.using(title="Instructions", filename="a_divorce_agreement_next_steps.docx", enabled=True, has_addendum=False)
-  - a_divorce_agreement_attachment: ALDocument.using(title="1A Divorce Agreement", filename="a_divorce_agreement", enabled=True, has_addendum=False, )
----
-# Bundles group the ALDocuments into separate downloads, such as for court and for the user
-objects:
-  - al_user_bundle: ALDocumentBundle.using(elements=[a_divorce_agreement_Post_interview_instructions, a_divorce_agreement_attachment], filename="a_divorce_agreement", title="All forms to download for your records", enabled=True)
-  - al_court_bundle: ALDocumentBundle.using(elements=[a_divorce_agreement_attachment],  filename="a_divorce_agreement", title="All forms to deliver to court", enabled=True)
+  - a_divorce_agreement_Post_interview_instructions: ALDocument.using(title="Instructions", filename="a_divorce_agreement_next_steps.docx", has_addendum=False)
+  - a_divorce_agreement_attachment: ALDocument.using(title="1A Divorce Agreement", filename="a_divorce_agreement", has_addendum=False, )
 ---
 # Each attachment defines a key in an ALDocument. We use `i` as the placeholder here so the same template is 
 # used for "preview" and "final" keys, and logic in the template checks the value of 
@@ -1951,5 +1850,3 @@ attachment:
   skip undefined: True
   docx template file: a_divorce_agreement.docx
   tagged pdf: True
-
-
