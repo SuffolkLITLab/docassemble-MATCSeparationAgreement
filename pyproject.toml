@@ -14,7 +14,7 @@ authors = [
 ]
 dependencies = [
     "docassemble.ALMassachusetts>=0.2.0",
-    "docassemble.AssemblyLine @ git+https://github.com/SuffolkLITLab/docassemble-AssemblyLine.git@main",
+    "docassemble.AssemblyLine",
 ]
 license = "MIT"
 license-files = [
