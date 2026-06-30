@@ -934,8 +934,8 @@ fields:
   - "Do you have a more details to your agreement for claiming the child(ren) on taxes?": child_tax_claim_custom_terms
     input type: radio
     choices: 
-      - Yes
-      - No   
+      - Yes: True
+      - No: False
   - "What custom agreement have you made about who will claim the child or children on tax returns?": child_tax_claim_custom_description
     show if: 
       variable: child_tax_claim_custom_terms
@@ -1102,8 +1102,8 @@ fields:
   - "Does Party A have debts or liabilities?": users[0].debt_listed
     input type: radio
     choices:
-      - Yes
-      - No   
+      - Yes: True
+      - No: False
     show if: 
       variable: individual_debt_responsible_each
       is: False
@@ -1118,11 +1118,11 @@ fields:
       - No: False
     show if:
       variable: individual_debt_responsible_each
-      is: No
+      is: False
   - "If Party B has debts and liabilities, what are they?": users[1].debt_description
     show if: 
       variable: users[1].debt_listed
-      is: Yes
+      is: True
 ---
 id: Pension and Retirement Plans
 question: |
