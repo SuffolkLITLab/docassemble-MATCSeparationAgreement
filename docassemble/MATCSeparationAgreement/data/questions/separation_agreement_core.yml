@@ -850,13 +850,19 @@ fields:
 id: health insurance no agreement exit
 event: health_insurance_no_agreement_exit
 question: |
-  You cannot continue without a health insurance agreement
+  A 1A divorce needs an agreement on health insurance
 subquestion: |
-  Because you do not have an agreement on health insurance, this interview
-  cannot complete that section.
+  In a 1A divorce, you must agree on every issue, including health insurance.
+  This interview cannot finish the agreement without it.
 
-  You may need to leave this section out of the agreement, get legal advice,
-  or ask the court to decide this issue.
+  **If you do agree about health insurance,** choose **Undo** to go back and
+  change your answer.
+
+  **If you cannot agree,** a 1B divorce may fit your situation better. In a 1B
+  divorce, depending on the judge, you may be able to file an agreement on the
+  issues you do agree on and ask the judge to decide the rest.
+
+  [Which type of divorce should I file?](https://www.mass.gov/decision-tree/which-type-of-divorce-should-i-file)
 buttons:
   - Exit: exit
 ---
@@ -918,13 +924,19 @@ fields:
 id: taxes no agreement exit
 event: taxes_no_agreement_exit
 question: |
-  You cannot continue without a tax agreement
+  A 1A divorce needs an agreement on taxes
 subquestion: |
-  Because you do not have an agreement on taxes, this interview cannot
-  complete that section.
+  In a 1A divorce, you must agree on every issue, including taxes. This
+  interview cannot finish the agreement without it.
 
-  You may need to leave this section out, get legal advice, or ask
-  the court to decide this issue.
+  **If you do agree about taxes,** choose **Undo** to go back and change your
+  answer.
+
+  **If you cannot agree,** a 1B divorce may fit your situation better. In a 1B
+  divorce, depending on the judge, you may be able to file an agreement on the
+  issues you do agree on and ask the judge to decide the rest.
+
+  [Which type of divorce should I file?](https://www.mass.gov/decision-tree/which-type-of-divorce-should-i-file)
 buttons:
   - Exit: exit
 ---
