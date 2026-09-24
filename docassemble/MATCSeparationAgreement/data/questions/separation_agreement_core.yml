@@ -290,7 +290,10 @@ sets:
   - users[0].name.first
   - users[0].name.last
 question: |
-  First spouse — your name
+  First spouse's name
+subquestion: |
+  Enter one spouse's legal name as it appears on court paperwork. You will
+  enter the other spouse's name next.
 fields:
   - First name: users[0].name.first
   - Middle name: users[0].name.middle
@@ -323,7 +326,9 @@ sets:
   - users[1].name.first
   - users[1].name.last
 question: |
-  Second spouse — your name
+  Second spouse's name
+subquestion: |
+  Enter the other spouse's legal name as it appears on court paperwork.
 fields:
   - First name: users[1].name.first
   - Middle name: users[1].name.middle
