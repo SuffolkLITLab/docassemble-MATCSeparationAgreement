@@ -686,7 +686,6 @@ fields:
     datatype: yesnoradio
   - Describe your agreement for extracurricular activities and camps: extracurricular_description
     datatype: area
-    required: False
     show if: extracurricular_custom_terms
 ---
 #################### Child Tax #####################
