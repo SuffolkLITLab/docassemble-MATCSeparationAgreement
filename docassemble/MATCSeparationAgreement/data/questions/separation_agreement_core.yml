@@ -525,6 +525,9 @@ subquestion: |
   Child support can be paid directly between parents or through a
   **wage assignment**, where the Department of Revenue automatically
   deducts payments from the paying parent's paycheck.
+validation code: |
+  if not child_support_wage_assignment and not child_support_direct_payment:
+    validation_error("Choose how child support will be paid: through a wage assignment, or directly between you. The agreement has to say one or the other.", field="child_support_direct_payment")
 fields:
   - Will child support be paid through a wage assignment via the Department of Revenue?: child_support_wage_assignment
     datatype: yesnoradio
