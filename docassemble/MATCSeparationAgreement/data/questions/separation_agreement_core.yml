@@ -179,10 +179,12 @@ code: |
     neither_party_life_insurance
 
   nav.set_section("adult_health_insurance")
+  # Ask who covers whom first. Spouses who each keep their own insurance
+  # already agree, so only ask about an agreement when one covers the other.
+  health_insurance_self_responsible
   health_insurance_custom_terms_adult
   if not health_insurance_custom_terms_adult:
     health_insurance_no_agreement_exit
-  health_insurance_self_responsible
   if not health_insurance_self_responsible:
     health_insurance_provider_adult
     health_insurance_types_adult
@@ -525,6 +527,9 @@ subquestion: |
   Child support can be paid directly between parents or through a
   **wage assignment**, where the Department of Revenue automatically
   deducts payments from the paying parent's paycheck.
+validation code: |
+  if not child_support_wage_assignment and not child_support_direct_payment:
+    validation_error("Choose how child support will be paid: through a wage assignment, or directly between you. The agreement has to say one or the other.", field="child_support_direct_payment")
 fields:
   - Will child support be paid through a wage assignment via the Department of Revenue?: child_support_wage_assignment
     datatype: yesnoradio
@@ -683,7 +688,6 @@ fields:
     datatype: yesnoradio
   - Describe your agreement for extracurricular activities and camps: extracurricular_description
     datatype: area
-    required: False
     show if: extracurricular_custom_terms
 ---
 #################### Child Tax #####################
@@ -763,7 +767,7 @@ fields:
 ---
 #################### Adult Health Insurance #####################
 
-id: adult health insurance
+id: adult health insurance self responsible
 question: |
   Health insurance for the spouses
 subquestion: |
@@ -774,15 +778,23 @@ subquestion: |
 
   [Request an open enrollment waiver](https://www.mass.gov/info-details/request-an-open-enrollment-waiver)
 fields:
-  - Do you have an agreement on how to handle health insurance after the divorce?: health_insurance_custom_terms_adult
-    datatype: yesnoradio
----
-id: adult health insurance self responsible
-question: |
-  Health insurance — who is responsible?
-fields:
   - Will each of you be responsible for your own health insurance?: health_insurance_self_responsible
     datatype: yesnoradio
+---
+id: adult health insurance
+question: |
+  Health insurance — covering the other spouse
+subquestion: |
+  You said one of you will provide health insurance for the other.
+fields:
+  - Have you agreed on how this will work after the divorce?: health_insurance_custom_terms_adult
+    datatype: yesnoradio
+---
+depends on: health_insurance_self_responsible
+code: |
+  # Each spouse keeping their own insurance is itself an agreement.
+  if health_insurance_self_responsible:
+    health_insurance_custom_terms_adult = True
 ---
 id: adult health insurance provider
 question: |
@@ -1439,9 +1451,9 @@ review:
     button: |
       **Same parent claims children on taxes every year**: ${ word(yesno(child_tax_claim_single_party)) }
     show if: has_children
-  - Edit: health_insurance_custom_terms_adult
+  - Edit: health_insurance_self_responsible
     button: |
-      **Agreement on adult health insurance**: ${ word(yesno(health_insurance_custom_terms_adult)) }
+      **Each spouse keeps their own health insurance**: ${ word(yesno(health_insurance_self_responsible)) }
   - Edit: taxes_custom_terms
     button: |
       **Agreement on taxes**: ${ word(yesno(taxes_custom_terms)) }
