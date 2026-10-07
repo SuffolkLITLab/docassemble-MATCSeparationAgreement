@@ -125,6 +125,10 @@ code: |
     custody_custom_description
 
     nav.set_section("child_support")
+    sa_support_children_reviewed
+    if not sa_support_children:
+      sa_no_support_children_notice
+  if has_children and sa_support_children:
     child_support_payer
     child_support_recipient
     child_support_wage_assignment
@@ -140,10 +144,11 @@ code: |
       child_support_deviation_reason
       child_support_amount_value
     child_support_frequency
-    if len(children) > 1:
+    if len(sa_support_children) > 1:
       child_support_applies_to
     child_support_ends_at_21
 
+  if has_children:
     nav.set_section("child_health_insurance")
     health_insurance_provided_for_children
     if not health_insurance_provided_for_children:
@@ -356,10 +361,11 @@ id: has children
 question: |
   Children
 subquestion: |
-  The court may make appropriate orders of maintenance, support and education
-  of any child who has attained age 18 but who has not attained age 21 and who
-  is domiciled in the home of a parent, and is principally dependent upon said
-  parent for maintenance.
+  The court can order support for a child under 18. It can also order support
+  for a child age 18 to 20 who lives with a parent and depends mainly on that
+  parent, and for a child age 21 or 22 who depends on that parent because the
+  child is enrolled in an educational program, up to an undergraduate degree
+  ([G.L. c. 208, § 28](https://malegislature.gov/Laws/GeneralLaws/PartII/TitleIII/Chapter208/Section28)).
 
   [Learn more about child support in Massachusetts](https://www.mass.gov/info-details/child-support-guidelines)
 fields:
@@ -370,8 +376,9 @@ id: how many children
 question: |
   How many children do you have together?
 subquestion: |
-  Include any unemancipated children from this marriage, including those between
-  18 and 21 who still live with and depend on a parent.
+  Include any unemancipated children from this marriage: children under 18,
+  children 18 to 20 who still live with and depend on a parent, and children
+  21 or 22 who depend on a parent because they are still in school.
 fields:
   - Number of children: children.target_number
     datatype: integer
@@ -512,6 +519,48 @@ code: |
 ---
 #################### Child Support #####################
 
+code: |
+  # G.L. c. 208, § 28: support for a child under 18; from 18 to 21 if the
+  # child is domiciled in a parent's home and principally dependent on that
+  # parent; from 21 to 23 only if that dependence is due to enrollment in an
+  # educational program, up to an undergraduate degree.
+  def sa_child_support_eligible(child):
+    age = child.age_in_years()
+    if age < 18:
+      return True
+    if age >= 23:
+      return False
+    return child.sa_support_continues
+---
+code: |
+  sa_support_children = [child for child in children if sa_child_support_eligible(child)]
+  sa_no_support_children = [child for child in children if child not in sa_support_children]
+  sa_support_children_reviewed = True
+---
+id: child support eligibility
+question: |
+  Child support for ${ children[i].familiar() }
+subquestion: |
+  ${ children[i].familiar() } is ${ children[i].age_in_years() }. Child support
+  for a child this age continues only in the situation below
+  ([G.L. c. 208, § 28](https://malegislature.gov/Laws/GeneralLaws/PartII/TitleIII/Chapter208/Section28)).
+fields:
+  - ${ "Does " + children[i].familiar() + " live with one of you and depend mainly on that parent for support?" if children[i].age_in_years() < 21 else "Does " + children[i].familiar() + " live with one of you and depend mainly on that parent because " + children[i].familiar() + " is in college or another educational program, up to an undergraduate degree?" }: children[i].sa_support_continues
+    datatype: yesnoradio
+---
+id: no children eligible for child support
+continue button field: sa_no_support_children_notice
+question: |
+  No child support section
+subquestion: |
+  Based on your answers, none of your children can receive child support under
+  [G.L. c. 208, § 28](https://malegislature.gov/Laws/GeneralLaws/PartII/TitleIII/Chapter208/Section28):
+  support ends at 18, or at 21 or 23 in the situations the law describes.
+
+  Your agreement will say that no child support is payable. If that's not
+  right, use **Undo** to change your answers.
+---
+
 id: child support who
 question: |
   Child support — who pays and who receives
@@ -609,7 +658,7 @@ fields:
       - each child individually
     show if:
       code: |
-        len(children) > 1
+        len(sa_support_children) > 1
   - Do you agree that child support ends when the child turns 21?: child_support_ends_at_21
     datatype: yesnoradio
 ---
