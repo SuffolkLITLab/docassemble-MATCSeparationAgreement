@@ -156,7 +156,7 @@ code: |
       health_insurance_custom_description_children
 
     nav.set_section("education")
-    education_cost_based_on_ability
+    education_cost_terms
     education_custom_description
     extracurricular_custom_terms
     if extracurricular_custom_terms:
@@ -655,28 +655,54 @@ id: education costs
 question: |
   College or trade school costs
 subquestion: |
-  No parent will be ordered to pay more than 50% of the undergraduate,
-  in-state resident costs of UMass Amherst, unless the court finds the
-  parent has ability to pay more.
+  If your children go to college or trade school after high school, how will
+  you share the cost?
+
+  The **cost of attending UMass Amherst** means its mandatory fees, tuition,
+  housing, meal plan, and books for an in-state undergraduate. A court cannot
+  order a parent to pay more than half of that cost unless it finds the parent
+  can afford more.
 
   [Learn more](https://www.mass.gov/info-details/2025-child-support-guidelines-section-ii-factors-to-be-considered-in-setting-the-child-support-order#g-contribution-to-post-secondary-expenses)
 fields:
-  - Do you agree to split college or trade school costs evenly?: education_cost_based_on_ability
-    datatype: yesnoradio
+  - How will you share college or trade school costs?: education_cost_terms
+    input type: radio
+    default: umass_third
+    choices:
+      - Each parent pays one-third of the cost of attending UMass Amherst: umass_third
+      - Each parent contributes according to their ability to pay: ability
+      - Each parent pays half of the cost: even
+      - Other terms: other
+---
+depends on: education_cost_terms
+code: |
+  education_cost_umass_third = education_cost_terms == "umass_third"
+  education_cost_based_on_ability = education_cost_terms == "ability"
+  education_cost_even = education_cost_terms == "even"
+  education_cost_other = education_cost_terms == "other"
+  education_cost_terms_label = {
+    "umass_third": "Each parent pays one-third of the cost of attending UMass Amherst",
+    "ability": "Each parent contributes according to their ability to pay",
+    "even": "Each parent pays half of the cost",
+    "other": "Other terms",
+  }[education_cost_terms]
 ---
 id: education additional terms
 question: |
   Education expense details
 subquestion: |
-  % if education_cost_based_on_ability:
-  If you have any additional terms for education expenses, describe them here. Leave blank if none.
+  % if education_cost_terms == "other":
+  Describe how you will share the cost of college or trade school.
   % else:
-  Since you are not splitting costs evenly, describe your education expense agreement below.
+  If you have any additional terms for education expenses, describe them here. Leave blank if none.
   % endif
 fields:
   - Describe your education expense agreement in detail, including how costs will be divided, which schools or programs are covered, and any conditions that apply: education_custom_description
     datatype: area
     required: False
+validation code: |
+  if education_cost_terms == "other" and not education_custom_description.strip():
+    validation_error("Describe how you will share the cost, since you chose other terms.", field="education_custom_description")
 ---
 id: extracurricular activities
 question: |
@@ -1444,9 +1470,9 @@ review:
     button: |
       **Health insurance for children**: ${ word(yesno(health_insurance_provided_for_children)) }
     show if: has_children
-  - Edit: education_cost_based_on_ability
+  - Edit: education_cost_terms
     button: |
-      **Split education costs evenly**: ${ word(yesno(education_cost_based_on_ability)) }
+      **College or trade school costs**: ${ education_cost_terms_label }
     show if: has_children
   - Edit: child_tax_claim_single_party
     button: |
