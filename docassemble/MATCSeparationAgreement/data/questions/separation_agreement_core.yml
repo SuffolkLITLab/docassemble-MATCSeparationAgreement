@@ -657,6 +657,16 @@ fields:
   - Why are you choosing a different amount?: child_support_deviation_reason
     datatype: area
     show if: child_support_deviation
+    help: |
+      The judge has to make written findings before approving a different
+      amount: that the Guidelines amount would be unjust or inappropriate,
+      the specific facts that justify the different amount, and that it is in
+      the children's best interests
+      ([G.L. c. 208, § 28](https://malegislature.gov/Laws/GeneralLaws/PartII/TitleIII/Chapter208/Section28)).
+
+      So give the specific facts, not just "we agreed." For example: "Ana pays
+      the children's private school tuition of $9,000 a year directly, so the
+      parties agreed to reduce the weekly amount by $173."
   - What is the agreed child support amount?: child_support_amount_value
     datatype: currency
     min: 0
