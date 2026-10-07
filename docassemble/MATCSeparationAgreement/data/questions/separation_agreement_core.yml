@@ -98,6 +98,14 @@ code: |
   party_a_handoff
   users[1].name.first
   users[1].phone_number
+  users[0].has_attorney
+  if users[0].has_attorney:
+    users[0].sa_attorney_name
+    users[0].sa_attorney_address
+  users[1].has_attorney
+  if users[1].has_attorney:
+    users[1].sa_attorney_name
+    users[1].sa_attorney_address
 
   # Set roles — Party A is users[0], Party B is users[1]
   users[0].party_label = "Party A"
@@ -354,6 +362,24 @@ question: |
   ${ users[1].familiar() }'s phone number
 fields:
   - Phone number: users[1].phone_number
+---
+id: separation agreement counsel
+question: |
+  Does ${ users[i].familiar() } have a lawyer?
+subquestion: |
+  The agreement says whether each of you has a lawyer, and gives the lawyer's
+  name and address. Only the two of you sign it.
+fields:
+  - Does ${ users[i].familiar() } have a lawyer?: users[i].has_attorney
+    datatype: yesnoradio
+  - Lawyer's full name: users[i].sa_attorney_name
+    show if:
+      variable: users[i].has_attorney
+      is: True
+  - Lawyer's mailing address: users[i].sa_attorney_address
+    show if:
+      variable: users[i].has_attorney
+      is: True
 ---
 #################### Children #####################
 
@@ -1496,6 +1522,12 @@ review:
       % for item in users:
         * ${ item }
       % endfor
+  - Edit: users[0].has_attorney
+    button: |
+      **${ users[0].familiar() }'s lawyer**: ${ users[0].sa_attorney_name if users[0].has_attorney else "None" }
+  - Edit: users[1].has_attorney
+    button: |
+      **${ users[1].familiar() }'s lawyer**: ${ users[1].sa_attorney_name if users[1].has_attorney else "None" }
   - Edit: has_children
     button: |
       **Children of the marriage**: ${ word(yesno(has_children)) }
