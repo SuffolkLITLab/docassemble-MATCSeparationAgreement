@@ -1007,9 +1007,12 @@ id: taxes
 question: |
   Taxes
 subquestion: |
-  If the divorce judgment is in effect at the close of the tax year, you
-  are married and must file either jointly or as married filing separately.
-  Once the divorce is final, your filing status is "single."
+  If your divorce is not final by December 31, you are still married for
+  that tax year and file either jointly or as married filing separately. A
+  divorce judgment becomes final 90 days after it enters
+  ([G.L. c. 208, § 21](https://malegislature.gov/Laws/GeneralLaws/PartII/TitleIII/Chapter208/Section21)).
+  Once it is final, you file as single, or as head of household if you
+  qualify ([IRS Publication 504](https://www.irs.gov/publications/p504)).
 
   [Learn more about filing status in Massachusetts](https://www.mass.gov/info-details/filing-status-on-massachusetts-personal-income-tax)
 fields:
