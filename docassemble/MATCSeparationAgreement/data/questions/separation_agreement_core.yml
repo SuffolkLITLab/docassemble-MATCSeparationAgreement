@@ -1500,6 +1500,7 @@ subquestion: |
 
   **Before filing:** Both spouses must sign the agreement in front of a
   notary. The signatures entered here do not replace notarization.
+  [Find a notary public](https://www.mass.gov/info-details/find-a-notary-public)
 
   ${ action_button_html(url_action('review_a_divorce_agreement'), label=':edit: Make changes', color='success', size='md') }
 
