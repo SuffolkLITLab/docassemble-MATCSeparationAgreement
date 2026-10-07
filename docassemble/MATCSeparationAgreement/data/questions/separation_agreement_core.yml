@@ -1284,9 +1284,10 @@ subquestion: |
   judgment or **survives** as a separate contract.
 
   - **Merged** — either party may ask the court to modify the provision
-    if there is a substantial change in circumstances.
-  - **Survived** — the provision remains a separate contract and cannot
-    be modified by the court except for fraud, duress, or mistake.
+    if there is a material change in circumstances.
+  - **Survived** — the provision remains a separate contract. The court
+    will change it only in rare circumstances, which require more than a
+    material change in circumstances.
 
   The following provisions **always survive** as a separate contract:
 
