@@ -308,6 +308,9 @@ question: |
 subquestion: |
   Enter one spouse's legal name as it appears on court paperwork. You will
   enter the other spouse's name next.
+
+  If you have two middle names or two last names, enter both in the same
+  box, the way they appear on your marriage certificate.
 fields:
   - First name: users[0].name.first
   - Middle name: users[0].name.middle
@@ -343,6 +346,9 @@ question: |
   Second spouse's name
 subquestion: |
   Enter the other spouse's legal name as it appears on court paperwork.
+
+  If you have two middle names or two last names, enter both in the same
+  box, the way they appear on your marriage certificate.
 fields:
   - First name: users[1].name.first
   - Middle name: users[1].name.middle
