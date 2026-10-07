@@ -98,6 +98,14 @@ code: |
   party_a_handoff
   users[1].name.first
   users[1].phone_number
+  users[0].has_attorney
+  if users[0].has_attorney:
+    users[0].sa_attorney_name
+    users[0].sa_attorney_address
+  users[1].has_attorney
+  if users[1].has_attorney:
+    users[1].sa_attorney_name
+    users[1].sa_attorney_address
 
   # Set roles — Party A is users[0], Party B is users[1]
   users[0].party_label = "Party A"
@@ -116,16 +124,19 @@ code: |
 
     nav.set_section("child_custody")
     custody_type_choice
-    custody_custom_description
 
     nav.set_section("parenting_time")
-    parenting_time_assigned
-    if parenting_time_assigned:
-      parenting_time_recipient
-      parenting_time_description
-      parenting_time_attached_schedule
+    parenting_time_description
+    parenting_time_fallback
+    parenting_time_attached_schedule
+    # Asked after the schedule so the examples can build on it.
+    custody_custom_description
 
     nav.set_section("child_support")
+    sa_support_children_reviewed
+    if not sa_support_children:
+      sa_no_support_children_notice
+  if has_children and sa_support_children:
     child_support_payer
     child_support_recipient
     child_support_wage_assignment
@@ -141,10 +152,11 @@ code: |
       child_support_deviation_reason
       child_support_amount_value
     child_support_frequency
-    if len(children) > 1:
+    if len(sa_support_children) > 1:
       child_support_applies_to
     child_support_ends_at_21
 
+  if has_children:
     nav.set_section("child_health_insurance")
     health_insurance_provided_for_children
     if not health_insurance_provided_for_children:
@@ -156,7 +168,7 @@ code: |
       health_insurance_custom_description_children
 
     nav.set_section("education")
-    education_cost_based_on_ability
+    education_cost_terms
     education_custom_description
     extracurricular_custom_terms
     if extracurricular_custom_terms:
@@ -296,6 +308,9 @@ question: |
 subquestion: |
   Enter one spouse's legal name as it appears on court paperwork. You will
   enter the other spouse's name next.
+
+  If you have two middle names or two last names, enter both in the same
+  box, the way they appear on your marriage certificate.
 fields:
   - First name: users[0].name.first
   - Middle name: users[0].name.middle
@@ -331,6 +346,9 @@ question: |
   Second spouse's name
 subquestion: |
   Enter the other spouse's legal name as it appears on court paperwork.
+
+  If you have two middle names or two last names, enter both in the same
+  box, the way they appear on your marriage certificate.
 fields:
   - First name: users[1].name.first
   - Middle name: users[1].name.middle
@@ -351,16 +369,35 @@ question: |
 fields:
   - Phone number: users[1].phone_number
 ---
+id: separation agreement counsel
+question: |
+  Does ${ users[i].familiar() } have a lawyer?
+subquestion: |
+  The agreement says whether each of you has a lawyer, and gives the lawyer's
+  name and address. Only the two of you sign it.
+fields:
+  - Does ${ users[i].familiar() } have a lawyer?: users[i].has_attorney
+    datatype: yesnoradio
+  - Lawyer's full name: users[i].sa_attorney_name
+    show if:
+      variable: users[i].has_attorney
+      is: True
+  - Lawyer's mailing address: users[i].sa_attorney_address
+    show if:
+      variable: users[i].has_attorney
+      is: True
+---
 #################### Children #####################
 
 id: has children
 question: |
   Children
 subquestion: |
-  The court may make appropriate orders of maintenance, support and education
-  of any child who has attained age 18 but who has not attained age 21 and who
-  is domiciled in the home of a parent, and is principally dependent upon said
-  parent for maintenance.
+  The court can order support for a child under 18. It can also order support
+  for a child age 18 to 20 who lives with a parent and depends mainly on that
+  parent, and for a child age 21 or 22 who depends on that parent because the
+  child is enrolled in an educational program, up to an undergraduate degree
+  ([G.L. c. 208, § 28](https://malegislature.gov/Laws/GeneralLaws/PartII/TitleIII/Chapter208/Section28)).
 
   [Learn more about child support in Massachusetts](https://www.mass.gov/info-details/child-support-guidelines)
 fields:
@@ -371,8 +408,9 @@ id: how many children
 question: |
   How many children do you have together?
 subquestion: |
-  Include any unemancipated children from this marriage, including those between
-  18 and 21 who still live with and depend on a parent.
+  Include any unemancipated children from this marriage: children under 18,
+  children 18 to 20 who still live with and depend on a parent, and children
+  21 or 22 who depend on a parent because they are still in school.
 fields:
   - Number of children: children.target_number
     datatype: integer
@@ -454,11 +492,19 @@ fields:
 ---
 id: custody additional terms
 question: |
-  Additional custody terms
+  Other custody and parenting terms
 subquestion: |
-  If you have any additional custody terms, describe them here. Leave blank if none.
+  Is there anything else you have agreed about custody or parenting time?
+  Leave this blank if not.
+
+  For example:
+
+  * How much notice one parent gives before taking the children out of state
+  * How you will share information about school and medical care
+  * How and when the children can call or video chat with the other parent
+  * What happens if one parent plans to move
 fields:
-  - Describe your additional custody terms in detail, including any specific conditions, schedules, or decision-making responsibilities: custody_custom_description
+  - Other custody and parenting terms: custody_custom_description
     datatype: area
     required: False
 ---
@@ -468,37 +514,84 @@ id: parenting time
 question: |
   Parenting time
 subquestion: |
-  Parenting time lets the parent without primary physical custody spend time
-  with the child. The agreement says when, where, and for how long visits
-  happen, and whether visits need to be supervised.
+  Your agreement needs a specific parenting time plan: when the children are
+  with each parent. You can agree to work out the details together, but you
+  also need a set schedule that applies whenever you can't agree.
 
   [Learn more about parenting time](https://www.mass.gov/child-custody-and-parenting-time)
 fields:
-  - Is there a parenting time arrangement?: parenting_time_assigned
-    datatype: yesnoradio
-  - Who has parenting time?: parenting_time_recipient
-    input type: radio
-    choices:
-      - ${ users[0].name.full() }
-      - ${ users[1].name.full() }
-    show if:
-      variable: parenting_time_assigned
-      is: True
-  - What is the parenting time schedule?: parenting_time_description
+  - What is your parenting time schedule?: parenting_time_description
     datatype: area
-    show if:
-      variable: parenting_time_assigned
-      is: True
-  - Is there a schedule for holidays or vacations to attach?: parenting_time_attached_schedule
+    help: |
+      Say who has the children and when. For example: "The children live
+      with ${ users[0].familiar() }. ${ users[1].familiar() } has them every
+      other weekend from Friday at 5 p.m. to Sunday at 5 p.m., and every
+      Wednesday from 3 p.m. to 7 p.m."
+
+      You can also write: "The parents will work together to decide parenting
+      time." If you do, the next answer must give a set schedule.
+  - If you can't agree on parenting time, what schedule applies?: parenting_time_fallback
+    datatype: area
+    help: |
+      This has to be a set schedule, with days and times. For example: "If
+      the parents cannot agree, ${ users[1].familiar() } will have the children
+      every other weekend from Friday at 5 p.m. to Sunday at 5 p.m."
+  - Is there a holiday or vacation schedule to attach?: parenting_time_attached_schedule
     datatype: radio
     choices:
       - Yes
       - No
-    show if:
-      variable: parenting_time_assigned
-      is: True
+validation code: |
+  if len(parenting_time_fallback.split()) < 8:
+    validation_error("Give a set schedule with days and times, for example which weekends and what hours.", field="parenting_time_fallback")
+---
+code: |
+  # Every agreement now includes a parenting time plan.
+  parenting_time_assigned = True
 ---
 #################### Child Support #####################
+
+code: |
+  # G.L. c. 208, § 28: support for a child under 18; from 18 to 21 if the
+  # child is domiciled in a parent's home and principally dependent on that
+  # parent; from 21 to 23 only if that dependence is due to enrollment in an
+  # educational program, up to an undergraduate degree.
+  def sa_child_support_eligible(child):
+    age = child.age_in_years()
+    if age < 18:
+      return True
+    if age >= 23:
+      return False
+    return child.sa_support_continues
+---
+code: |
+  sa_support_children = [child for child in children if sa_child_support_eligible(child)]
+  sa_no_support_children = [child for child in children if child not in sa_support_children]
+  sa_support_children_reviewed = True
+---
+id: child support eligibility
+question: |
+  Child support for ${ children[i].familiar() }
+subquestion: |
+  ${ children[i].familiar() } is ${ children[i].age_in_years() }. Child support
+  for a child this age continues only in the situation below
+  ([G.L. c. 208, § 28](https://malegislature.gov/Laws/GeneralLaws/PartII/TitleIII/Chapter208/Section28)).
+fields:
+  - ${ "Does " + children[i].familiar() + " live with one of you and depend mainly on that parent for support?" if children[i].age_in_years() < 21 else "Does " + children[i].familiar() + " live with one of you and depend mainly on that parent because " + children[i].familiar() + " is in college or another educational program, up to an undergraduate degree?" }: children[i].sa_support_continues
+    datatype: yesnoradio
+---
+id: no children eligible for child support
+continue button field: sa_no_support_children_notice
+question: |
+  No child support section
+subquestion: |
+  Based on your answers, none of your children can receive child support under
+  [G.L. c. 208, § 28](https://malegislature.gov/Laws/GeneralLaws/PartII/TitleIII/Chapter208/Section28):
+  support ends at 18, or at 21 or 23 in the situations the law describes.
+
+  Your agreement will say that no child support is payable. If that's not
+  right, use **Undo** to change your answers.
+---
 
 id: child support who
 question: |
@@ -570,6 +663,16 @@ fields:
   - Why are you choosing a different amount?: child_support_deviation_reason
     datatype: area
     show if: child_support_deviation
+    help: |
+      The judge has to make written findings before approving a different
+      amount: that the Guidelines amount would be unjust or inappropriate,
+      the specific facts that justify the different amount, and that it is in
+      the children's best interests
+      ([G.L. c. 208, § 28](https://malegislature.gov/Laws/GeneralLaws/PartII/TitleIII/Chapter208/Section28)).
+
+      So give the specific facts, not just "we agreed." For example: "Ana pays
+      the children's private school tuition of $9,000 a year directly, so the
+      parties agreed to reduce the weekly amount by $173."
   - What is the agreed child support amount?: child_support_amount_value
     datatype: currency
     min: 0
@@ -597,7 +700,7 @@ fields:
       - each child individually
     show if:
       code: |
-        len(children) > 1
+        len(sa_support_children) > 1
   - Do you agree that child support ends when the child turns 21?: child_support_ends_at_21
     datatype: yesnoradio
 ---
@@ -655,28 +758,54 @@ id: education costs
 question: |
   College or trade school costs
 subquestion: |
-  No parent will be ordered to pay more than 50% of the undergraduate,
-  in-state resident costs of UMass Amherst, unless the court finds the
-  parent has ability to pay more.
+  If your children go to college or trade school after high school, how will
+  you share the cost?
+
+  The **cost of attending UMass Amherst** means its mandatory fees, tuition,
+  housing, meal plan, and books for an in-state undergraduate. A court cannot
+  order a parent to pay more than half of that cost unless it finds the parent
+  can afford more.
 
   [Learn more](https://www.mass.gov/info-details/2025-child-support-guidelines-section-ii-factors-to-be-considered-in-setting-the-child-support-order#g-contribution-to-post-secondary-expenses)
 fields:
-  - Do you agree to split college or trade school costs evenly?: education_cost_based_on_ability
-    datatype: yesnoradio
+  - How will you share college or trade school costs?: education_cost_terms
+    input type: radio
+    default: umass_third
+    choices:
+      - Each parent pays one-third of the cost of attending UMass Amherst: umass_third
+      - Each parent contributes according to their ability to pay: ability
+      - Each parent pays half of the cost: even
+      - Other terms: other
+---
+depends on: education_cost_terms
+code: |
+  education_cost_umass_third = education_cost_terms == "umass_third"
+  education_cost_based_on_ability = education_cost_terms == "ability"
+  education_cost_even = education_cost_terms == "even"
+  education_cost_other = education_cost_terms == "other"
+  education_cost_terms_label = {
+    "umass_third": "Each parent pays one-third of the cost of attending UMass Amherst",
+    "ability": "Each parent contributes according to their ability to pay",
+    "even": "Each parent pays half of the cost",
+    "other": "Other terms",
+  }[education_cost_terms]
 ---
 id: education additional terms
 question: |
   Education expense details
 subquestion: |
-  % if education_cost_based_on_ability:
-  If you have any additional terms for education expenses, describe them here. Leave blank if none.
+  % if education_cost_terms == "other":
+  Describe how you will share the cost of college or trade school.
   % else:
-  Since you are not splitting costs evenly, describe your education expense agreement below.
+  If you have any additional terms for education expenses, describe them here. Leave blank if none.
   % endif
 fields:
   - Describe your education expense agreement in detail, including how costs will be divided, which schools or programs are covered, and any conditions that apply: education_custom_description
     datatype: area
     required: False
+validation code: |
+  if education_cost_terms == "other" and not education_custom_description.strip():
+    validation_error("Describe how you will share the cost, since you chose other terms.", field="education_custom_description")
 ---
 id: extracurricular activities
 question: |
@@ -884,9 +1013,12 @@ id: taxes
 question: |
   Taxes
 subquestion: |
-  If the divorce judgment is in effect at the close of the tax year, you
-  are married and must file either jointly or as married filing separately.
-  Once the divorce is final, your filing status is "single."
+  If your divorce is not final by December 31, you are still married for
+  that tax year and file either jointly or as married filing separately. A
+  divorce judgment becomes final 90 days after it enters
+  ([G.L. c. 208, § 21](https://malegislature.gov/Laws/GeneralLaws/PartII/TitleIII/Chapter208/Section21)).
+  Once it is final, you file as single, or as head of household if you
+  qualify ([IRS Publication 504](https://www.irs.gov/publications/p504)).
 
   [Learn more about filing status in Massachusetts](https://www.mass.gov/info-details/filing-status-on-massachusetts-personal-income-tax)
 fields:
@@ -1284,9 +1416,10 @@ subquestion: |
   judgment or **survives** as a separate contract.
 
   - **Merged** — either party may ask the court to modify the provision
-    if there is a substantial change in circumstances.
-  - **Survived** — the provision remains a separate contract and cannot
-    be modified by the court except for fraud, duress, or mistake.
+    if there is a material change in circumstances.
+  - **Survived** — the provision remains a separate contract. The court
+    will change it only in rare circumstances, which require more than a
+    material change in circumstances.
 
   The following provisions **always survive** as a separate contract:
 
@@ -1386,6 +1519,7 @@ subquestion: |
 
   **Before filing:** Both spouses must sign the agreement in front of a
   notary. The signatures entered here do not replace notarization.
+  [Find a notary public](https://www.mass.gov/info-details/find-a-notary-public)
 
   ${ action_button_html(url_action('review_a_divorce_agreement'), label=':edit: Make changes', color='success', size='md') }
 
@@ -1408,6 +1542,12 @@ review:
       % for item in users:
         * ${ item }
       % endfor
+  - Edit: users[0].has_attorney
+    button: |
+      **${ users[0].familiar() }'s lawyer**: ${ users[0].sa_attorney_name if users[0].has_attorney else "None" }
+  - Edit: users[1].has_attorney
+    button: |
+      **${ users[1].familiar() }'s lawyer**: ${ users[1].sa_attorney_name if users[1].has_attorney else "None" }
   - Edit: has_children
     button: |
       **Children of the marriage**: ${ word(yesno(has_children)) }
@@ -1423,9 +1563,11 @@ review:
     button: |
       **Custody arrangement**: ${ custody_type_choice }
     show if: has_children
-  - Edit: parenting_time_assigned
+  - Edit: parenting_time_description
     button: |
-      **Parenting time**: ${ word(yesno(parenting_time_assigned)) }
+      **Parenting time schedule**: ${ parenting_time_description }
+
+      **If you can't agree**: ${ parenting_time_fallback }
     show if: has_children
   - Edit: child_support_payer
     button: |
@@ -1443,9 +1585,9 @@ review:
     button: |
       **Health insurance for children**: ${ word(yesno(health_insurance_provided_for_children)) }
     show if: has_children
-  - Edit: education_cost_based_on_ability
+  - Edit: education_cost_terms
     button: |
-      **Split education costs evenly**: ${ word(yesno(education_cost_based_on_ability)) }
+      **College or trade school costs**: ${ education_cost_terms_label }
     show if: has_children
   - Edit: child_tax_claim_single_party
     button: |
