@@ -116,14 +116,13 @@ code: |
 
     nav.set_section("child_custody")
     custody_type_choice
-    custody_custom_description
 
     nav.set_section("parenting_time")
-    parenting_time_assigned
-    if parenting_time_assigned:
-      parenting_time_recipient
-      parenting_time_description
-      parenting_time_attached_schedule
+    parenting_time_description
+    parenting_time_fallback
+    parenting_time_attached_schedule
+    # Asked after the schedule so the examples can build on it.
+    custody_custom_description
 
     nav.set_section("child_support")
     child_support_payer
@@ -454,11 +453,19 @@ fields:
 ---
 id: custody additional terms
 question: |
-  Additional custody terms
+  Other custody and parenting terms
 subquestion: |
-  If you have any additional custody terms, describe them here. Leave blank if none.
+  Is there anything else you have agreed about custody or parenting time?
+  Leave this blank if not.
+
+  For example:
+
+  * How much notice one parent gives before taking the children out of state
+  * How you will share information about school and medical care
+  * How and when the children can call or video chat with the other parent
+  * What happens if one parent plans to move
 fields:
-  - Describe your additional custody terms in detail, including any specific conditions, schedules, or decision-making responsibilities: custody_custom_description
+  - Other custody and parenting terms: custody_custom_description
     datatype: area
     required: False
 ---
@@ -468,35 +475,40 @@ id: parenting time
 question: |
   Parenting time
 subquestion: |
-  Parenting time lets the parent without primary physical custody spend time
-  with the child. The agreement says when, where, and for how long visits
-  happen, and whether visits need to be supervised.
+  Your agreement needs a specific parenting time plan: when the children are
+  with each parent. You can agree to work out the details together, but you
+  also need a set schedule that applies whenever you can't agree.
 
   [Learn more about parenting time](https://www.mass.gov/child-custody-and-parenting-time)
 fields:
-  - Is there a parenting time arrangement?: parenting_time_assigned
-    datatype: yesnoradio
-  - Who has parenting time?: parenting_time_recipient
-    input type: radio
-    choices:
-      - ${ users[0].name.full() }
-      - ${ users[1].name.full() }
-    show if:
-      variable: parenting_time_assigned
-      is: True
-  - What is the parenting time schedule?: parenting_time_description
+  - What is your parenting time schedule?: parenting_time_description
     datatype: area
-    show if:
-      variable: parenting_time_assigned
-      is: True
-  - Is there a schedule for holidays or vacations to attach?: parenting_time_attached_schedule
+    help: |
+      Say who has the children and when. For example: "The children live
+      with ${ users[0].familiar() }. ${ users[1].familiar() } has them every
+      other weekend from Friday at 5 p.m. to Sunday at 5 p.m., and every
+      Wednesday from 3 p.m. to 7 p.m."
+
+      You can also write: "The parents will work together to decide parenting
+      time." If you do, the next answer must give a set schedule.
+  - If you can't agree on parenting time, what schedule applies?: parenting_time_fallback
+    datatype: area
+    help: |
+      This has to be a set schedule, with days and times. For example: "If
+      the parents cannot agree, ${ users[1].familiar() } will have the children
+      every other weekend from Friday at 5 p.m. to Sunday at 5 p.m."
+  - Is there a holiday or vacation schedule to attach?: parenting_time_attached_schedule
     datatype: radio
     choices:
       - Yes
       - No
-    show if:
-      variable: parenting_time_assigned
-      is: True
+validation code: |
+  if len(parenting_time_fallback.split()) < 8:
+    validation_error("Give a set schedule with days and times, for example which weekends and what hours.", field="parenting_time_fallback")
+---
+code: |
+  # Every agreement now includes a parenting time plan.
+  parenting_time_assigned = True
 ---
 #################### Child Support #####################
 
@@ -1450,9 +1462,11 @@ review:
     button: |
       **Custody arrangement**: ${ custody_type_choice }
     show if: has_children
-  - Edit: parenting_time_assigned
+  - Edit: parenting_time_description
     button: |
-      **Parenting time**: ${ word(yesno(parenting_time_assigned)) }
+      **Parenting time schedule**: ${ parenting_time_description }
+
+      **If you can't agree**: ${ parenting_time_fallback }
     show if: has_children
   - Edit: child_support_payer
     button: |
