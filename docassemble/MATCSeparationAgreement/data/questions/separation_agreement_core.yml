@@ -272,12 +272,9 @@ code: |
 
   nav.set_section("merger")
   provisions_that_merge
-  users1_initials
-  users2_initials
 
   nav.set_section("court_info")
   trial_court
-  signature_date
   docket_number
 
   # The agreement template reads these, but no question asks for them. The
@@ -1592,8 +1589,6 @@ question: |
 fields:
   - Docket number (if known): docket_number
     required: False
-  - Date of agreement: signature_date
-    datatype: date
 ---
 #################### Signatures #####################
 
@@ -1634,8 +1629,9 @@ subquestion: |
   Thank you, ${ users[0] } and ${ users[1] }. Your separation agreement is
   ready to download.
 
-  **Before filing:** Both spouses must sign the agreement in front of a
-  notary. The signatures entered here do not replace notarization.
+  **Before filing:** Both spouses must sign, date and initial the agreement
+  in front of a notary. The signature lines and initials are left blank for
+  that.
   [Find a notary public](https://www.mass.gov/info-details/find-a-notary-public)
 
   ${ action_button_html(url_action('review_a_divorce_agreement'), label=':edit: Make changes', color='success', size='md') }
@@ -1740,9 +1736,6 @@ review:
   - Edit: trial_court
     button: |
       **Court**: ${ trial_court if defined('trial_court') else '' }
-  - Edit: signature_date
-    button: |
-      **Date of agreement**: ${ signature_date }
   - Edit: docket_number
     button: |
       **Docket number**: ${ docket_number }
