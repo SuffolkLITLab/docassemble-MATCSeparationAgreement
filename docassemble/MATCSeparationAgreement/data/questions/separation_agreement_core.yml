@@ -272,6 +272,19 @@ code: |
   signature_date
   docket_number
 
+  # The agreement template reads these, but no question asks for them. The
+  # attachment uses skip undefined, so anything left undefined here prints
+  # blank instead of raising an error. Compute them before the document.
+  has_no_children
+  agreement_merge_partial
+  merge_alimony
+  merge_child_issues
+  merge_other_description
+  if has_children:
+    custody_sole
+    parenting_time_assigned
+    education_cost_based_on_ability
+
   interview_order_a_divorce_agreement = True
 ---
 #################### Derived variables #####################
@@ -282,9 +295,20 @@ code: |
   merge_life_insurance = provisions_that_merge["Life insurance"]
 ---
 code: |
+  # Property division always survives. Child-related terms always merge
+  # (G.L. c. 208, § 28), and the parties pick which other terms merge, so the
+  # agreement is either partly merged or survives as a whole.
   agreement_merge_fully = False
-  agreement_merge_none = False
-  agreement_merge_partial = True
+  agreement_merge_partial = has_children or not provisions_that_merge.all_false()
+  agreement_merge_none = not agreement_merge_partial
+---
+code: |
+  merge_child_issues = has_children
+---
+code: |
+  # The template's "Other" line in the partial-merger list. Nothing collects
+  # free-text merge terms yet.
+  merge_other_description = ""
 ---
 code: |
   custody_joint_legal_physical = (custody_type_choice == "Joint legal and physical custody")
