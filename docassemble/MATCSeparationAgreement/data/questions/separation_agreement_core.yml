@@ -221,7 +221,8 @@ code: |
       alimony_recipient
       alimony_amount_value
       alimony_frequency
-      alimony_due_on
+      if alimony_frequency != "Other":
+        alimony_due_on
       alimony_end_date
       alimony_custom_description
 
@@ -248,7 +249,7 @@ code: |
 
   nav.set_section("debts")
   no_marital_debt
-  if no_marital_debt:
+  if not no_marital_debt:
     debt_custom_terms
     debt_custom_description
   individual_debt_responsible_each
@@ -272,6 +273,23 @@ code: |
   signature_date
   docket_number
 
+  # The agreement template reads these, but no question asks for them. The
+  # attachment uses skip undefined, so anything left undefined here prints
+  # blank instead of raising an error. Compute them before the document.
+  has_no_children
+  agreement_merge_partial
+  merge_alimony
+  merge_child_issues
+  merge_other_description
+  if has_children:
+    custody_sole
+    parenting_time_assigned
+    education_cost_based_on_ability
+  if has_children and sa_support_children:
+    sa_child_support_amount
+  if not alimony_waived_all and alimony_payment_agreed:
+    sa_alimony_period
+
   interview_order_a_divorce_agreement = True
 ---
 #################### Derived variables #####################
@@ -282,9 +300,44 @@ code: |
   merge_life_insurance = provisions_that_merge["Life insurance"]
 ---
 code: |
+  # Property division always survives. Child-related terms always merge
+  # (G.L. c. 208, § 28), and the parties pick which other terms merge, so the
+  # agreement is either partly merged or survives as a whole.
   agreement_merge_fully = False
-  agreement_merge_none = False
-  agreement_merge_partial = True
+  agreement_merge_partial = has_children or not provisions_that_merge.all_false()
+  agreement_merge_none = not agreement_merge_partial
+---
+code: |
+  merge_child_issues = has_children
+---
+code: |
+  if alimony_frequency == "Weekly":
+    sa_alimony_period = "per week"
+  elif alimony_frequency == "Biweekly":
+    sa_alimony_period = "every two weeks"
+  elif alimony_frequency == "Monthly":
+    sa_alimony_period = "per month"
+  else:
+    sa_alimony_period = alimony_frequency_other
+---
+code: |
+  # The amount the agreement states: the Guidelines amount unless the parties
+  # chose to deviate, in which case the amount they agreed on.
+  if child_support_deviation:
+    sa_child_support_amount = child_support_amount_value
+  else:
+    sa_child_support_amount = child_support_guideline_amount
+  if child_support_frequency == "Weekly":
+    sa_child_support_period = "week"
+  elif child_support_frequency == "Monthly":
+    sa_child_support_period = "month"
+  else:
+    sa_child_support_period = child_support_frequency_other
+---
+code: |
+  # The template's "Other" line in the partial-merger list. Nothing collects
+  # free-text merge terms yet.
+  merge_other_description = ""
 ---
 code: |
   custody_joint_legal_physical = (custody_type_choice == "Joint legal and physical custody")
@@ -1136,11 +1189,20 @@ fields:
       - Biweekly
       - Monthly
       - Other
+  - Describe how often alimony will be paid: alimony_frequency_other
+    show if:
+      variable: alimony_frequency
+      is: Other
   - When will payments be due?: alimony_due_on
     input type: radio
     choices:
-      - Every Friday
-      - First day of each month
+      # The agreement template compares against these stored values.
+      - Every Friday: friday
+      - First day of each month: first_of_month
+    # An "Other" schedule already says when payments are due.
+    hide if:
+      variable: alimony_frequency
+      is: Other
 ---
 id: alimony end date
 question: |
@@ -1306,8 +1368,8 @@ fields:
   - Do you have any shared debts or liabilities from the marriage?: no_marital_debt
     input type: radio
     choices:
-      - Yes: True
-      - No: False
+      - Yes: False
+      - No: True
 ---
 id: debts shared agreement
 question: |
@@ -1367,8 +1429,8 @@ fields:
   - Do either of you have retirement or pension benefits?: no_retirement_benefits
     input type: radio
     choices:
-      - Yes: True
-      - No: False
+      - Yes: False
+      - No: True
   - Are you waiving interest in each other's retirement or pension benefits?: retirement_interest_waived
     input type: radio
     choices:
@@ -1376,7 +1438,7 @@ fields:
       - No: False
     show if:
       variable: no_retirement_benefits
-      is: True
+      is: False
   - Have you agreed to divide retirement or pension benefits?: retirement_benefits_divided
     input type: radio
     choices:
@@ -1610,10 +1672,10 @@ review:
       **Personal property already divided**: ${ word(yesno(personal_property_already_divided)) }
   - Edit: no_marital_debt
     button: |
-      **Have shared marital debt**: ${ word(yesno(no_marital_debt)) }
+      **Have shared marital debt**: ${ word(yesno(not no_marital_debt)) }
   - Edit: no_retirement_benefits
     button: |
-      **Have retirement or pension benefits**: ${ word(yesno(no_retirement_benefits)) }
+      **Have retirement or pension benefits**: ${ word(yesno(not no_retirement_benefits)) }
   - Edit: no_life_insurance
     button: |
       **No life insurance**: ${ word(yesno(no_life_insurance)) }
