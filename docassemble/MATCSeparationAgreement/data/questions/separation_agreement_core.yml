@@ -316,6 +316,15 @@ code: |
   merge_child_issues = has_children
 ---
 code: |
+  # The due day follows the schedule, as it does for child support: weekly and
+  # biweekly payments are due on Friday, monthly ones on the first. An "Other"
+  # schedule states its own timing, so the order block never asks for this.
+  if alimony_frequency in ("Weekly", "Biweekly"):
+    alimony_due_on = "friday"
+  else:
+    alimony_due_on = "first_of_month"
+---
+code: |
   if alimony_frequency == "Weekly":
     sa_alimony_period = "per week"
   elif alimony_frequency == "Biweekly":
@@ -1219,16 +1228,6 @@ fields:
       - Other
   - Describe how often alimony will be paid: alimony_frequency_other
     show if:
-      variable: alimony_frequency
-      is: Other
-  - When will payments be due?: alimony_due_on
-    input type: radio
-    choices:
-      # The agreement template compares against these stored values.
-      - Every Friday: friday
-      - First day of each month: first_of_month
-    # An "Other" schedule already says when payments are due.
-    hide if:
       variable: alimony_frequency
       is: Other
 ---
