@@ -284,6 +284,8 @@ code: |
     custody_sole
     parenting_time_assigned
     education_cost_based_on_ability
+  if has_children and sa_support_children:
+    sa_child_support_amount
 
   interview_order_a_divorce_agreement = True
 ---
@@ -304,6 +306,20 @@ code: |
 ---
 code: |
   merge_child_issues = has_children
+---
+code: |
+  # The amount the agreement states: the Guidelines amount unless the parties
+  # chose to deviate, in which case the amount they agreed on.
+  if child_support_deviation:
+    sa_child_support_amount = child_support_amount_value
+  else:
+    sa_child_support_amount = child_support_guideline_amount
+  if child_support_frequency == "Weekly":
+    sa_child_support_period = "week"
+  elif child_support_frequency == "Monthly":
+    sa_child_support_period = "month"
+  else:
+    sa_child_support_period = child_support_frequency_other
 ---
 code: |
   # The template's "Other" line in the partial-merger list. Nothing collects
