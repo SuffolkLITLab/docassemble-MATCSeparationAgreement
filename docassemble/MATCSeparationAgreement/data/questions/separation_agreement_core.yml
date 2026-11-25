@@ -221,7 +221,8 @@ code: |
       alimony_recipient
       alimony_amount_value
       alimony_frequency
-      alimony_due_on
+      if alimony_frequency != "Other":
+        alimony_due_on
       alimony_end_date
       alimony_custom_description
 
@@ -1198,6 +1199,10 @@ fields:
       # The agreement template compares against these stored values.
       - Every Friday: friday
       - First day of each month: first_of_month
+    # An "Other" schedule already says when payments are due.
+    hide if:
+      variable: alimony_frequency
+      is: Other
 ---
 id: alimony end date
 question: |
