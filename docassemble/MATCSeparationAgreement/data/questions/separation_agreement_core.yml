@@ -155,6 +155,10 @@ code: |
     if len(sa_support_children) > 1:
       child_support_applies_to
     child_support_ends_at_21
+    if not child_support_ends_at_21:
+      child_support_end_event
+      if child_support_end_event == "other":
+        child_support_end_other
 
   if has_children:
     nav.set_section("child_health_insurance")
@@ -164,6 +168,7 @@ code: |
     else:
       health_insurance_provider_children
       health_insurance_types_children
+      health_insurance_until
       uninsured_expenses_split_children
       health_insurance_custom_description_children
 
@@ -756,6 +761,22 @@ fields:
         len(sa_support_children) > 1
   - Do you agree that child support ends when the child turns 21?: child_support_ends_at_21
     datatype: yesnoradio
+  - When will child support end?: child_support_end_event
+    input type: radio
+    choices:
+      # Emancipation is defined in the agreement from G.L. c. 208, § 28:
+      # 18, or 21 if living with and principally dependent on a parent, or
+      # 23 if that dependence is due to an educational program.
+      - When the child is emancipated, as the agreement defines it: emancipation
+      - Something else: other
+    show if:
+      variable: child_support_ends_at_21
+      is: False
+  - Describe when child support will end: child_support_end_other
+    datatype: area
+    show if:
+      variable: child_support_end_event
+      is: other
 ---
 #################### Children's Health Insurance #####################
 
@@ -792,6 +813,13 @@ fields:
       - Private Plan
       - Dental
       - Vision
+  - How long will the children's health insurance last?: health_insurance_until
+    input type: radio
+    choices:
+      # The agreement template compares against these stored values.
+      - Until each child is emancipated, as the agreement defines it: emancipation
+      - Until each child turns 25: age_25
+    default: emancipation
   - Will you split the cost of uninsured medical or dental bills 50/50?: uninsured_expenses_split_children
     datatype: yesnoradio
 ---
