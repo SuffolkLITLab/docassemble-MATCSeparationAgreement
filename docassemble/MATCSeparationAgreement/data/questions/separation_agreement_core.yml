@@ -1602,18 +1602,6 @@ fields:
       - Life insurance
     none of the above: False
 ---
-id: initials
-question: |
-  Initials
-subquestion: |
-  Both parties initial the agreement to confirm they have read and agreed
-  to the merger and survival terms above.
-fields:
-  - ${ users[0].familiar() }'s initials: users1_initials
-    input type: area
-  - ${ users[1].familiar() }'s initials: users2_initials
-    input type: area
----
 #################### Court info #####################
 
 id: court info
