@@ -194,6 +194,10 @@ code: |
     users1_life_insurance_required
     users2_life_insurance_required
     neither_party_life_insurance
+    if users1_life_insurance_required:
+      users1_life_insurance_amount
+    if users2_life_insurance_required:
+      users2_life_insurance_amount
 
   nav.set_section("adult_health_insurance")
   # Ask who covers whom first. Spouses who each keep their own insurance
@@ -293,6 +297,8 @@ code: |
     sa_child_support_amount
   if not alimony_waived_all and alimony_payment_agreed:
     sa_alimony_period
+  if has_children and (users1_life_insurance_required or users2_life_insurance_required):
+    sa_life_insurance_term_a
 
   interview_order_a_divorce_agreement = True
 ---
@@ -982,6 +988,33 @@ fields:
     datatype: yesno
   - Neither party has life insurance: neither_party_life_insurance
     datatype: yesno
+  - How much coverage will ${ users[0].familiar() } keep?: users1_life_insurance_amount
+    datatype: currency
+    min: 0
+    show if: users1_life_insurance_required
+  - How much coverage will ${ users[1].familiar() } keep?: users2_life_insurance_amount
+    datatype: currency
+    min: 0
+    show if: users2_life_insurance_required
+---
+code: |
+  # How long each party keeps the policy: while that party pays child support
+  # or alimony under the agreement; a party who pays neither keeps it until
+  # the youngest child is emancipated.
+  sa_life_insurance_terms = []
+  for person in users:
+    obligations = []
+    if has_children and sa_support_children and child_support_payer == person.name.full():
+      obligations.append("child support")
+    if not alimony_waived_all and alimony_payment_agreed and alimony_payer == person.name.full():
+      obligations.append("alimony")
+    if obligations:
+      sa_life_insurance_terms.append("for so long as " + person.name.full() + " has an obligation to pay " + " or ".join(obligations) + " under this Agreement")
+    else:
+      sa_life_insurance_terms.append("until the youngest child of the parties is emancipated, as defined in this Agreement")
+  sa_life_insurance_term_a = sa_life_insurance_terms[0]
+  sa_life_insurance_term_b = sa_life_insurance_terms[1]
+  del person
 ---
 #################### Adult Health Insurance #####################
 
