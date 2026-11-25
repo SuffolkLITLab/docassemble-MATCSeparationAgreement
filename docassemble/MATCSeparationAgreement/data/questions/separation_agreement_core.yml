@@ -230,6 +230,8 @@ code: |
         alimony_due_on
       alimony_end_date
       alimony_custom_description
+    else:
+      alimony_no_agreement_exit
 
   nav.set_section("real_estate")
   no_real_estate
@@ -1175,6 +1177,32 @@ buttons:
   - Exit: exit
 ---
 #################### Alimony #####################
+
+id: alimony no agreement exit
+event: alimony_no_agreement_exit
+question: |
+  A 1A divorce needs an agreement on alimony
+subquestion: |
+  You said neither of you waives alimony and neither of you will pay it. This
+  interview can finish the agreement in one of two ways:
+
+  * **Both of you waive alimony,** now and in the future.
+  * **One of you pays alimony** on terms you agree on.
+
+  Choose **Undo** to go back and change your answer.
+
+  If you agree that no one pays alimony now but want to keep the right to ask
+  for it later, this interview cannot write that term. Talk with a lawyer
+  about it before you file.
+
+  **If you cannot agree,** a 1B divorce may fit your situation better. In a 1B
+  divorce, depending on the judge, you may be able to file an agreement on the
+  issues you do agree on and ask the judge to decide the rest.
+
+  [Which type of divorce should I file?](https://www.mass.gov/decision-tree/which-type-of-divorce-should-i-file)
+buttons:
+  - Exit: exit
+---
 
 id: alimony waiver
 question: |
