@@ -286,6 +286,8 @@ code: |
     education_cost_based_on_ability
   if has_children and sa_support_children:
     sa_child_support_amount
+  if not alimony_waived_all and alimony_payment_agreed:
+    sa_alimony_period
 
   interview_order_a_divorce_agreement = True
 ---
@@ -306,6 +308,16 @@ code: |
 ---
 code: |
   merge_child_issues = has_children
+---
+code: |
+  if alimony_frequency == "Weekly":
+    sa_alimony_period = "per week"
+  elif alimony_frequency == "Biweekly":
+    sa_alimony_period = "every two weeks"
+  elif alimony_frequency == "Monthly":
+    sa_alimony_period = "per month"
+  else:
+    sa_alimony_period = alimony_frequency_other
 ---
 code: |
   # The amount the agreement states: the Guidelines amount unless the parties
@@ -1176,11 +1188,16 @@ fields:
       - Biweekly
       - Monthly
       - Other
+  - Describe how often alimony will be paid: alimony_frequency_other
+    show if:
+      variable: alimony_frequency
+      is: Other
   - When will payments be due?: alimony_due_on
     input type: radio
     choices:
-      - Every Friday
-      - First day of each month
+      # The agreement template compares against these stored values.
+      - Every Friday: friday
+      - First day of each month: first_of_month
 ---
 id: alimony end date
 question: |
