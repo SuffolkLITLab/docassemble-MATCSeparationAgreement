@@ -234,6 +234,8 @@ code: |
         alimony_due_on
       alimony_end_date
       alimony_custom_description
+      if has_children and sa_support_children:
+        alimony_child_support_caution
     else:
       alimony_no_agreement_exit
 
@@ -276,6 +278,7 @@ code: |
 
   nav.set_section("merger")
   provisions_that_merge
+  dispute_resolution_clause
 
   nav.set_section("court_info")
   trial_court
@@ -1602,6 +1605,73 @@ fields:
       - Life insurance
     none of the above: False
 ---
+id: dispute resolution
+question: |
+  If you disagree later
+subquestion: |
+  After the divorce, you may disagree about what the agreement means or about
+  changing it. You can agree now to try to settle a disagreement yourselves,
+  and then with a mediator, before either of you goes to court.
+
+  A **mediator** is a neutral person who helps you talk and reach your own
+  agreement. A mediator does not decide for you.
+
+  This clause is optional. It never stops either of you from going to court in
+  an emergency or when someone's safety is at risk, and the court can still
+  change the terms about your children.
+fields:
+  - Add a clause about settling disagreements before going to court?: dispute_resolution_clause
+    datatype: yesnoradio
+    default: False
+  - How many hours of mediation, at least?: dispute_mediation_hours
+    datatype: integer
+    min: 1
+    default: 2
+    show if: dispute_resolution_clause
+  - Who pays the mediator?: dispute_mediation_cost
+    datatype: radio
+    choices:
+      - We split the cost equally: equal
+      - ${ users[0] } pays: party_a
+      - ${ users[1] } pays: party_b
+    default: equal
+    show if: dispute_resolution_clause
+---
+id: alimony and child support caution
+continue button field: alimony_child_support_caution
+question: |
+  Your agreement has both alimony and child support
+subquestion: |
+  Alimony and child support affect each other, and the court looks at them
+  together.
+
+  You can keep going. We suggest you talk with a lawyer or a
+  [Court Service Center](https://www.mass.gov/orgs/court-service-centers)
+  before you sign. Court Service Centers are free.
+
+  [Find legal aid](https://www.lsc.gov/what-legal-aid/find-legal-aid)
+continue button label: Keep going
+---
+template: sa_before_you_sign_text
+content: |
+  * **This agreement binds both of you.** It is a contract. When you both sign
+    it, you each agree to do what it says.
+  * **The judge reviews it at your hearing.** If the judge approves it, it
+    becomes part of your divorce judgment.
+  * **Some terms can change later, and some usually cannot.** If things change,
+    the court can change the terms about your children and any terms you chose
+    to merge. Terms that survive as a contract, and the way you divide your
+    property, usually cannot be changed.
+  * **Each of you may want a lawyer to read it before you sign.**
+    [Find legal aid](https://www.lsc.gov/what-legal-aid/find-legal-aid)
+---
+id: sa before you sign
+continue button field: sa_before_you_sign_reviewed
+question: |
+  Before you sign
+subquestion: |
+  ${ sa_before_you_sign_text }
+---
 #################### Court info #####################
 
 id: court info
@@ -1754,6 +1824,9 @@ review:
   - Edit: provisions_that_merge
     button: |
       **Provisions that merge**: ${ provisions_that_merge.true_values() }
+  - Edit: dispute_resolution_clause
+    button: |
+      **Settle disagreements before going to court**: ${ word(yesno(dispute_resolution_clause)) }
   - Edit: trial_court
     button: |
       **Court**: ${ trial_court if defined('trial_court') else '' }
