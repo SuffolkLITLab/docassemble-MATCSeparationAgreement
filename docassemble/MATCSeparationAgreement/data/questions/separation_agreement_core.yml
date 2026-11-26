@@ -1661,8 +1661,8 @@ content: |
   * **The judge reviews it at your hearing.** If the judge approves it, it
     becomes part of your divorce judgment.
   * **Some terms can change later, and some usually cannot.** If things change,
-    the court can change the terms about your children and any terms you chose
-    to merge. Terms that survive as a contract, and the way you divide your
+    the court can change ${ "the terms about your children and " if has_children else "" }any
+    terms you chose to merge. Terms that survive as a contract, and the way you divide your
     property, usually cannot be changed.
   * **Each of you may want a lawyer to read it before you sign.**
     [Find legal aid](https://www.lsc.gov/what-legal-aid/find-legal-aid)
