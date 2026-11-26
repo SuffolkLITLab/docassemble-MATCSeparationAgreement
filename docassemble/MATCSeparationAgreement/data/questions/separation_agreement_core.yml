@@ -1617,8 +1617,10 @@ subquestion: |
   agreement. A mediator does not decide for you.
 
   This clause is optional. It never stops either of you from going to court in
-  an emergency or when someone's safety is at risk, and the court can still
-  change the terms about your children.
+  an emergency or when someone's safety is at risk.
+  % if has_children:
+  The court can still change the terms about your children.
+  % endif
 fields:
   - Add a clause about settling disagreements before going to court?: dispute_resolution_clause
     datatype: yesnoradio
