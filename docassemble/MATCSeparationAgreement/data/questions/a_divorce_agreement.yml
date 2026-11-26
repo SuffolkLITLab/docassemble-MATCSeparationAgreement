@@ -17,9 +17,8 @@ code: |
   interview_order_a_divorce_agreement
 
   a_divorce_agreement_preview_question
-  basic_questions_signature_flow
-  users[0].signature
-  users[1].signature
+  # The parties sign the agreement in front of a notary, so the interview
+  # collects no on-screen signatures for it.
   a_divorce_agreement_download
 ---
 id: trial court

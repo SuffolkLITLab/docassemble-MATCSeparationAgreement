@@ -155,6 +155,10 @@ code: |
     if len(sa_support_children) > 1:
       child_support_applies_to
     child_support_ends_at_21
+    if not child_support_ends_at_21:
+      child_support_end_event
+      if child_support_end_event == "other":
+        child_support_end_other
 
   if has_children:
     nav.set_section("child_health_insurance")
@@ -164,6 +168,7 @@ code: |
     else:
       health_insurance_provider_children
       health_insurance_types_children
+      health_insurance_until
       uninsured_expenses_split_children
       health_insurance_custom_description_children
 
@@ -189,6 +194,10 @@ code: |
     users1_life_insurance_required
     users2_life_insurance_required
     neither_party_life_insurance
+    if users1_life_insurance_required:
+      users1_life_insurance_amount
+    if users2_life_insurance_required:
+      users2_life_insurance_amount
 
   nav.set_section("adult_health_insurance")
   # Ask who covers whom first. Spouses who each keep their own insurance
@@ -225,6 +234,8 @@ code: |
         alimony_due_on
       alimony_end_date
       alimony_custom_description
+    else:
+      alimony_no_agreement_exit
 
   nav.set_section("real_estate")
   no_real_estate
@@ -265,12 +276,9 @@ code: |
 
   nav.set_section("merger")
   provisions_that_merge
-  users1_initials
-  users2_initials
 
   nav.set_section("court_info")
   trial_court
-  signature_date
   docket_number
 
   # The agreement template reads these, but no question asks for them. The
@@ -289,6 +297,8 @@ code: |
     sa_child_support_amount
   if not alimony_waived_all and alimony_payment_agreed:
     sa_alimony_period
+  if has_children and (users1_life_insurance_required or users2_life_insurance_required):
+    sa_life_insurance_term_a
 
   interview_order_a_divorce_agreement = True
 ---
@@ -309,6 +319,15 @@ code: |
 ---
 code: |
   merge_child_issues = has_children
+---
+code: |
+  # The due day follows the schedule, as it does for child support: weekly and
+  # biweekly payments are due on Friday, monthly ones on the first. An "Other"
+  # schedule states its own timing, so the order block never asks for this.
+  if alimony_frequency in ("Weekly", "Biweekly"):
+    alimony_due_on = "friday"
+  else:
+    alimony_due_on = "first_of_month"
 ---
 code: |
   if alimony_frequency == "Weekly":
@@ -756,6 +775,22 @@ fields:
         len(sa_support_children) > 1
   - Do you agree that child support ends when the child turns 21?: child_support_ends_at_21
     datatype: yesnoradio
+  - When will child support end?: child_support_end_event
+    input type: radio
+    choices:
+      # Emancipation is defined in the agreement from G.L. c. 208, § 28:
+      # 18, or 21 if living with and principally dependent on a parent, or
+      # 23 if that dependence is due to an educational program.
+      - When the child is emancipated, as the agreement defines it: emancipation
+      - Something else: other
+    show if:
+      variable: child_support_ends_at_21
+      is: False
+  - Describe when child support will end: child_support_end_other
+    datatype: area
+    show if:
+      variable: child_support_end_event
+      is: other
 ---
 #################### Children's Health Insurance #####################
 
@@ -792,6 +827,13 @@ fields:
       - Private Plan
       - Dental
       - Vision
+  - How long will the children's health insurance last?: health_insurance_until
+    input type: radio
+    choices:
+      # The agreement template compares against these stored values.
+      - Until each child is emancipated, as the agreement defines it: emancipation
+      - Until each child turns 25: age_25
+    default: emancipation
   - Will you split the cost of uninsured medical or dental bills 50/50?: uninsured_expenses_split_children
     datatype: yesnoradio
 ---
@@ -946,6 +988,33 @@ fields:
     datatype: yesno
   - Neither party has life insurance: neither_party_life_insurance
     datatype: yesno
+  - How much coverage will ${ users[0].familiar() } keep?: users1_life_insurance_amount
+    datatype: currency
+    min: 0
+    show if: users1_life_insurance_required
+  - How much coverage will ${ users[1].familiar() } keep?: users2_life_insurance_amount
+    datatype: currency
+    min: 0
+    show if: users2_life_insurance_required
+---
+code: |
+  # How long each party keeps the policy: while that party pays child support
+  # or alimony under the agreement; a party who pays neither keeps it until
+  # the youngest child is emancipated.
+  sa_life_insurance_terms = []
+  for person in users:
+    obligations = []
+    if has_children and sa_support_children and child_support_payer == person.name.full():
+      obligations.append("child support")
+    if not alimony_waived_all and alimony_payment_agreed and alimony_payer == person.name.full():
+      obligations.append("alimony")
+    if obligations:
+      sa_life_insurance_terms.append("for so long as " + person.name.full() + " has an obligation to pay " + " or ".join(obligations) + " under this Agreement")
+    else:
+      sa_life_insurance_terms.append("until the youngest child of the parties is emancipated, as defined in this Agreement")
+  sa_life_insurance_term_a = sa_life_insurance_terms[0]
+  sa_life_insurance_term_b = sa_life_insurance_terms[1]
+  del person
 ---
 #################### Adult Health Insurance #####################
 
@@ -1139,6 +1208,32 @@ buttons:
 ---
 #################### Alimony #####################
 
+id: alimony no agreement exit
+event: alimony_no_agreement_exit
+question: |
+  A 1A divorce needs an agreement on alimony
+subquestion: |
+  You said neither of you waives alimony and neither of you will pay it. This
+  interview can finish the agreement in one of two ways:
+
+  * **Both of you waive alimony,** now and in the future.
+  * **One of you pays alimony** on terms you agree on.
+
+  Choose **Undo** to go back and change your answer.
+
+  If you agree that no one pays alimony now but want to keep the right to ask
+  for it later, this interview cannot write that term. Talk with a lawyer
+  about it before you file.
+
+  **If you cannot agree,** a 1B divorce may fit your situation better. In a 1B
+  divorce, depending on the judge, you may be able to file an agreement on the
+  issues you do agree on and ask the judge to decide the rest.
+
+  [Which type of divorce should I file?](https://www.mass.gov/decision-tree/which-type-of-divorce-should-i-file)
+buttons:
+  - Exit: exit
+---
+
 id: alimony waiver
 question: |
   Alimony
@@ -1191,16 +1286,6 @@ fields:
       - Other
   - Describe how often alimony will be paid: alimony_frequency_other
     show if:
-      variable: alimony_frequency
-      is: Other
-  - When will payments be due?: alimony_due_on
-    input type: radio
-    choices:
-      # The agreement template compares against these stored values.
-      - Every Friday: friday
-      - First day of each month: first_of_month
-    # An "Other" schedule already says when payments are due.
-    hide if:
       variable: alimony_frequency
       is: Other
 ---
@@ -1517,18 +1602,6 @@ fields:
       - Life insurance
     none of the above: False
 ---
-id: initials
-question: |
-  Initials
-subquestion: |
-  Both parties initial the agreement to confirm they have read and agreed
-  to the merger and survival terms above.
-fields:
-  - ${ users[0].familiar() }'s initials: users1_initials
-    input type: area
-  - ${ users[1].familiar() }'s initials: users2_initials
-    input type: area
----
 #################### Court info #####################
 
 id: court info
@@ -1537,8 +1610,6 @@ question: |
 fields:
   - Docket number (if known): docket_number
     required: False
-  - Date of agreement: signature_date
-    datatype: date
 ---
 #################### Signatures #####################
 
@@ -1579,8 +1650,9 @@ subquestion: |
   Thank you, ${ users[0] } and ${ users[1] }. Your separation agreement is
   ready to download.
 
-  **Before filing:** Both spouses must sign the agreement in front of a
-  notary. The signatures entered here do not replace notarization.
+  **Before filing:** Both spouses must sign, date and initial the agreement
+  in front of a notary. The signature lines and initials are left blank for
+  that.
   [Find a notary public](https://www.mass.gov/info-details/find-a-notary-public)
 
   ${ action_button_html(url_action('review_a_divorce_agreement'), label=':edit: Make changes', color='success', size='md') }
@@ -1685,9 +1757,6 @@ review:
   - Edit: trial_court
     button: |
       **Court**: ${ trial_court if defined('trial_court') else '' }
-  - Edit: signature_date
-    button: |
-      **Date of agreement**: ${ signature_date }
   - Edit: docket_number
     button: |
       **Docket number**: ${ docket_number }
