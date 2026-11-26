@@ -6,7 +6,7 @@ objects:
   - users: ALPeopleList.using(ask_number=False, target_number=2)
   - children: ALPeopleList.using(ask_number=True)
   - al_user_bundle: ALDocumentBundle.using(elements=[a_divorce_agreement_Post_interview_instructions, a_divorce_agreement_attachment], filename="separation_agreement_packet", title="All forms", enabled=True)
-  - al_court_bundle: ALDocumentBundle.using(elements=[a_divorce_agreement_attachment], filename="separation_agreement_court", title="Forms to deliver to court", enabled=True)
+  - al_court_bundle: ALDocumentBundle.using(elements=[a_divorce_agreement_attachment], filename="separation_agreement_court", title="Forms to file with the court", enabled=True)
 ---
 id: standalone separation agreement order
 mandatory: True

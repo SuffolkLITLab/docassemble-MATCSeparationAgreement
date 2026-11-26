@@ -657,7 +657,7 @@ continue button field: sa_no_support_children_notice
 question: |
   No child support section
 subquestion: |
-  Based on your answers, none of your children can receive child support under
+  Based on your answers, none of your children can get child support under
   [G.L. c. 208, § 28](https://malegislature.gov/Laws/GeneralLaws/PartII/TitleIII/Chapter208/Section28):
   support ends at 18, or at 21 or 23 in the situations the law describes.
 
@@ -667,7 +667,7 @@ subquestion: |
 
 id: child support who
 question: |
-  Child support — who pays and who receives
+  Child support — who pays and who gets it
 subquestion: |
   Child support is money one parent pays to help with a child's financial
   needs when the parents don't live together.
@@ -679,7 +679,7 @@ fields:
     choices:
       - ${ users[0].name.full() }
       - ${ users[1].name.full() }
-  - Who will receive child support?: child_support_recipient
+  - Who will get child support?: child_support_recipient
     input type: radio
     choices:
       - ${ users[0].name.full() }
@@ -712,7 +712,7 @@ fields:
     show if:
       variable: child_support_wage_assignment_full
       is: False
-  - Will child support be paid directly between the parties?: child_support_direct_payment
+  - Will child support be paid directly between the two of you?: child_support_direct_payment
     datatype: yesnoradio
     show if:
       variable: child_support_wage_assignment
@@ -1257,14 +1257,14 @@ fields:
 ---
 id: alimony who
 question: |
-  Alimony — who pays and who receives
+  Alimony — who pays and who gets it
 fields:
   - Who will pay alimony?: alimony_payer
     input type: radio
     choices:
       - ${ users[0].name.full() }
       - ${ users[1].name.full() }
-  - Who will receive alimony?: alimony_recipient
+  - Who will get alimony?: alimony_recipient
     input type: radio
     choices:
       - ${ users[0].name.full() }
