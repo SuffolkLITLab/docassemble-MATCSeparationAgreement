@@ -733,14 +733,14 @@ fields:
     none of the above: We haven't agreed on this
 ---
 code: |
-  sa_communication_labels = {
-    "phone": "phone calls",
-    "text": "text messages",
-    "email": "email",
-    "app": "a co-parenting app",
-    "in_person": "in person",
-  }
-  sa_communication_list = comma_and_list([sa_communication_labels[k] for k in parenting_communication_methods.true_values()])
+  sa_communication_labels = [
+    ("phone", "phone calls"),
+    ("text", "text messages"),
+    ("email", "email"),
+    ("app", "a co-parenting app"),
+    ("in_person", "in-person conversations"),
+  ]
+  sa_communication_list = comma_and_list([label for key, label in sa_communication_labels if parenting_communication_methods[key]])
 ---
 #################### Child Support #####################
 
