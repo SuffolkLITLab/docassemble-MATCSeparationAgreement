@@ -131,6 +131,7 @@ code: |
     parenting_time_attached_schedule
     # Asked after the schedule so the examples can build on it.
     custody_custom_description
+    parenting_communication_methods
 
     nav.set_section("child_support")
     sa_support_children_reviewed
@@ -296,6 +297,7 @@ code: |
     custody_sole
     parenting_time_assigned
     education_cost_based_on_ability
+    sa_communication_list
   if has_children and sa_support_children:
     sa_child_support_amount
   if not alimony_waived_all and alimony_payment_agreed:
@@ -624,6 +626,34 @@ code: |
   # Every agreement now includes a parenting time plan.
   parenting_time_assigned = True
 ---
+id: parenting communication
+question: |
+  How you will talk about the children
+subquestion: |
+  Agreeing on how you will reach each other about the children, such as
+  schedule changes, school, and health, can prevent misunderstandings.
+  Choose every way you agree to use.
+fields:
+  - How will you communicate with each other about the children?: parenting_communication_methods
+    datatype: checkboxes
+    choices:
+      - Phone calls: phone
+      - Text messages: text
+      - Email: email
+      - A co-parenting app: app
+      - In person: in_person
+    none of the above: We haven't agreed on this
+---
+code: |
+  sa_communication_labels = {
+    "phone": "phone calls",
+    "text": "text messages",
+    "email": "email",
+    "app": "a co-parenting app",
+    "in_person": "in person",
+  }
+  sa_communication_list = comma_and_list([sa_communication_labels[k] for k in parenting_communication_methods.true_values()])
+---
 #################### Child Support #####################
 
 code: |
@@ -923,6 +953,11 @@ id: child tax
 question: |
   Claiming children on taxes
 subquestion: |
+  For federal taxes, the parent the child lived with for more nights during
+  the year is the custodial parent. The other parent can claim the child only
+  if the custodial parent signs IRS Form 8332 or a similar written statement
+  ([IRS Publication 504](https://www.irs.gov/publications/p504)).
+
   [Learn more about the Massachusetts Child and Family Tax Credit](https://www.mass.gov/info-details/massachusetts-child-and-family-tax-credit)
 fields:
   - Will the same parent claim the children every year?: child_tax_claim_single_party
@@ -1139,8 +1174,10 @@ question: |
   Taxes
 subquestion: |
   If your divorce is not final by December 31, you are still married for
-  that tax year and file either jointly or as married filing separately. A
-  divorce judgment becomes final 90 days after it enters
+  that tax year and file either jointly or as married filing separately. In a
+  1A divorce, the judgment (called a judgment nisi) enters 30 days after the
+  judge approves your agreement, and the divorce becomes final 90 days after
+  that
   ([G.L. c. 208, § 21](https://malegislature.gov/Laws/GeneralLaws/PartII/TitleIII/Chapter208/Section21)).
   Once it is final, you file as single, or as head of household if you
   qualify ([IRS Publication 504](https://www.irs.gov/publications/p504)).
@@ -1161,6 +1198,10 @@ fields:
       variable: taxes_custom_terms
       is: True
   - Have you both filed and paid all taxes during the marriage?: taxes_fully_reported
+    help: |
+      Answer yes only if every joint return you filed during the marriage was
+      filed and fully paid, and no one is auditing you or trying to collect
+      unpaid taxes from you.
     datatype: radio
     choices:
       - Yes: True
@@ -1177,6 +1218,11 @@ fields:
       variable: taxes_fully_reported
       is: False
   - Who will be responsible for the unpaid tax debt?: tax_debt_responsible_party
+    help: |
+      Your agreement decides who pays between the two of you. But the IRS can
+      still collect unpaid tax on a joint return from either of you, even if
+      the agreement says the other spouse will pay
+      ([IRS Publication 504](https://www.irs.gov/publications/p504)).
     datatype: radio
     choices:
       - ${ users[0].name.full() }
@@ -1294,15 +1340,24 @@ fields:
 ---
 id: alimony end date
 question: |
-  Alimony — end date
+  When alimony ends
 subquestion: |
-  Alimony typically ends on a specific date, or when a triggering event
-  occurs such as remarriage or cohabitation. Specify the end date below if
-  you have agreed to one.
+  The agreement always says alimony ends if ${ alimony_recipient } remarries
+  or either of you dies, as Massachusetts law provides
+  ([G.L. c. 208, § 49](https://malegislature.gov/Laws/GeneralLaws/PartII/TitleIII/Chapter208/Section49)).
+  You can also choose an end date, and whether living with a new partner
+  affects it.
 fields:
   - End date for alimony payments: alimony_end_date
     datatype: date
     required: False
+  - Can alimony be suspended, reduced, or ended if ${ alimony_recipient } lives with another person for at least three months in a row?: alimony_ends_on_cohabitation
+    datatype: yesnoradio
+    default: True
+    help: |
+      Massachusetts law allows this for general term alimony when the person
+      receiving it shares a home with someone else for at least three
+      continuous months ([G.L. c. 208, § 49(d)](https://malegislature.gov/Laws/GeneralLaws/PartII/TitleIII/Chapter208/Section49)).
 ---
 id: alimony additional terms
 question: |
@@ -1322,6 +1377,18 @@ question: |
 subquestion: |
   Do you and your spouse own any real estate together, such as a house,
   condo, or land?
+
+  In Massachusetts, a judge can divide all property either of you owns, no
+  matter whose name it is in, including property one of you owned before the
+  marriage or got as a gift or inheritance. Who paid for it and how you got it
+  can affect how it is divided
+  ([G.L. c. 208, § 34](https://malegislature.gov/Laws/GeneralLaws/PartII/TitleIII/Chapter208/Section34)).
+  If one of you will keep a home that has a mortgage, that spouse may need to
+  {refinance}.
+terms:
+  refinance: |
+    Replacing a mortgage with a new loan, often so the house is only in one
+    spouse's name.
 fields:
   - Do you own real estate together?: no_real_estate
     input type: radio
@@ -1419,6 +1486,13 @@ fields:
 id: personal property
 question: |
   Personal property
+subquestion: |
+  {Personal property} means things you own other than land or buildings, like
+  cars, furniture, jewelry, and household items. You don't need to list them.
+terms:
+  Personal property: |
+    Things you own other than land or buildings, like cars, furniture,
+    jewelry, and household items.
 fields:
   - Have you already divided all of your personal property?: personal_property_already_divided
     input type: radio
@@ -1443,6 +1517,18 @@ fields:
     show if:
       variable: personal_property_divide_plan
       is: True
+  - Within how many days will each of you remove property that belongs to the other, after advance notice?: personal_property_removal_days
+    datatype: integer
+    min: 1
+    required: False
+    help: |
+      Leave blank if nothing needs to be moved.
+  - Within how many days of the court's approval will titles, such as a vehicle's, be transferred?: personal_property_title_days
+    datatype: integer
+    min: 1
+    required: False
+    help: |
+      Leave blank if no titles need to change.
 ---
 #################### Debts #####################
 
@@ -1513,6 +1599,12 @@ fields:
 id: retirement
 question: |
   Pension and retirement plans
+subquestion: |
+  Retirement benefits include pensions, 401(k) and 403(b) plans, IRAs, and
+  government, military, or union pensions. Count accounts in either spouse's
+  name. A Massachusetts judge can divide retirement savings that either of you
+  has, no matter whose name the account is in
+  ([G.L. c. 208, § 34](https://malegislature.gov/Laws/GeneralLaws/PartII/TitleIII/Chapter208/Section34)).
 fields:
   - Do either of you have retirement or pension benefits?: no_retirement_benefits
     input type: radio
@@ -1520,6 +1612,9 @@ fields:
       - Yes: False
       - No: True
   - Are you waiving interest in each other's retirement or pension benefits?: retirement_interest_waived
+    help: |
+      If you waive, each of you gives up any claim to the other's pension or
+      retirement benefits.
     input type: radio
     choices:
       - Yes: True
@@ -1536,6 +1631,16 @@ fields:
       variable: retirement_interest_waived
       is: False
   - How will you divide retirement or pension benefits?: retirement_division_description
+    help: |
+      Name each account and say how it is divided. To find an account's
+      value, use the balance on the most recent statement; for a pension, use
+      the estimated benefit on the latest pension statement.
+
+      Dividing a 401(k), pension, or similar workplace plan takes a separate
+      court order called a Qualified Domestic Relations Order (QDRO). It tells
+      the plan how much to pay each of you. An IRA can be split by transfer
+      under the divorce judgment, without a QDRO
+      ([IRS Publication 504](https://www.irs.gov/publications/p504)).
     datatype: area
     show if:
       variable: retirement_benefits_divided
@@ -1775,6 +1880,10 @@ review:
 
       **If you can't agree**: ${ parenting_time_fallback }
     show if: has_children
+  - Edit: parenting_communication_methods
+    button: |
+      **How you will communicate**: ${ sa_communication_list or "Not agreed" }
+    show if: has_children
   - Edit: child_support_payer
     button: |
       **Child support payer**: ${ child_support_payer }
@@ -1808,12 +1917,23 @@ review:
   - Edit: alimony_waived_all
     button: |
       **Alimony waived**: ${ word(yesno(alimony_waived_all)) }
+  - Edit: alimony_end_date
+    button: |
+      **Alimony end date**: ${ alimony_end_date if alimony_end_date else "None" }.
+      **Can end with cohabitation**: ${ word(yesno(alimony_ends_on_cohabitation)) }
+    show if: not alimony_waived_all and alimony_payment_agreed
   - Edit: no_real_estate
     button: |
       **Own real estate together**: ${ word(yesno(not no_real_estate)) }
   - Edit: personal_property_already_divided
     button: |
       **Personal property already divided**: ${ word(yesno(personal_property_already_divided)) }
+      % if personal_property_removal_days:
+      **Remove the other's property within**: ${ personal_property_removal_days } days
+      % endif
+      % if personal_property_title_days:
+      **Transfer titles within**: ${ personal_property_title_days } days
+      % endif
   - Edit: no_marital_debt
     button: |
       **Have shared marital debt**: ${ word(yesno(not no_marital_debt)) }
