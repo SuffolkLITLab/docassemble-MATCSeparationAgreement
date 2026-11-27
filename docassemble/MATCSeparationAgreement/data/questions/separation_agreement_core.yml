@@ -126,11 +126,14 @@ code: |
     custody_type_choice
 
     nav.set_section("parenting_time")
+    parenting_schedule_pattern
     parenting_time_description
     parenting_time_fallback
+    sa_holiday_plan
     parenting_time_attached_schedule
     # Asked after the schedule so the examples can build on it.
     custody_custom_description
+    parenting_communication_methods
 
     nav.set_section("child_support")
     sa_support_children_reviewed
@@ -241,24 +244,12 @@ code: |
 
   nav.set_section("real_estate")
   no_real_estate
-  if not no_real_estate:
-    real_estate_address
-    real_estate_current_owner
-    real_estate_county
-    real_estate_book
-    real_estate_page
-    real_estate_custom_terms
-    if real_estate_custom_terms:
-      real_estate_transfer
-      if real_estate_transfer:
-        real_estate_owner_name
-        real_estate_waiver_party
-        real_estate_cost_responsible
-        real_estate_start_date
-    real_estate_custom_description
+  sa_properties.gather()
 
   nav.set_section("personal_property")
+  sa_vehicles.gather()
   personal_property_already_divided
+  sa_equalization_text
 
   nav.set_section("debts")
   no_marital_debt
@@ -296,6 +287,8 @@ code: |
     custody_sole
     parenting_time_assigned
     education_cost_based_on_ability
+    sa_communication_list
+    sa_holiday_text
   if has_children and sa_support_children:
     sa_child_support_amount
   if not alimony_waived_all and alimony_payment_agreed:
@@ -585,6 +578,39 @@ fields:
 ---
 #################### Parenting Time #####################
 
+id: parenting schedule pattern
+question: |
+  Your regular parenting schedule
+subquestion: |
+  Pick the pattern closest to what you agreed. On the next screen you'll see
+  it written out with your names, and you can change any of it.
+fields:
+  - no label: parenting_schedule_pattern
+    datatype: radio
+    choices:
+      - "Week on, week off: the children alternate full weeks with each parent": week
+      - "2-2-3: two days with one parent, two with the other, then three, switching each week": "223"
+      - "2-2-5-5: two days with each parent, then five days with each": "2255"
+      - "3-4-4-3: three days with one parent and four with the other, then the reverse": "3443"
+      - "Every other weekend plus a midweek visit: the children live mainly with one parent": eow
+      - "A schedule for a baby or toddler: shorter, more frequent time with the other parent": young
+      - "A flexible schedule for teenagers, built around school, work, and activities": teen
+      - "Something else: I'll describe it": other
+---
+code: |
+  _a = users[0].familiar()
+  _b = users[1].familiar()
+  parenting_pattern_text = {
+    "week": f"The children alternate weeks between {_a} and {_b}. Each week starts on Friday at 5 p.m., when the children go to the other parent.",
+    "223": f"In the first week, the children are with {_a} on Monday and Tuesday, with {_b} on Wednesday and Thursday, and with {_a} from Friday through Sunday. In the second week, the parents switch days. The pattern then repeats. Exchanges happen at 5 p.m., or at school when school is in session.",
+    "2255": f"The children are with {_a} every Monday and Tuesday and with {_b} every Wednesday and Thursday. Weekends from Friday through Sunday alternate between the parents. Exchanges happen at 5 p.m., or at school when school is in session.",
+    "3443": f"In the first week, the children are with {_a} from Sunday at 5 p.m. to Wednesday at 5 p.m. and with {_b} from Wednesday at 5 p.m. to Sunday at 5 p.m. In the second week, the parents switch. The pattern then repeats.",
+    "eow": f"The children live with {_a}. {_b} has them every other weekend from Friday at 5 p.m. to Sunday at 5 p.m., and every Wednesday from 3 p.m. to 7 p.m.",
+    "young": f"The child lives with {_a}. {_b} has the child three times a week for three hours, on Tuesday, Thursday, and Saturday from 9 a.m. to 12 p.m. The parents will add time, including overnights, as the child grows.",
+    "teen": f"The children live with {_a} during the school week and spend every other weekend, from Friday at 5 p.m. to Sunday at 5 p.m., with {_b}. The parents will adjust the schedule with the children's input to fit school, work, and activities.",
+    "other": "",
+  }[parenting_schedule_pattern]
+---
 id: parenting time
 question: |
   Parenting time
@@ -597,6 +623,7 @@ subquestion: |
 fields:
   - What is your parenting time schedule?: parenting_time_description
     datatype: area
+    default: ${ parenting_pattern_text }
     help: |
       Say who has the children and when. For example: "The children live
       with ${ users[0].familiar() }. ${ users[1].familiar() } has them every
@@ -611,18 +638,109 @@ fields:
       This has to be a set schedule, with days and times. For example: "If
       the parents cannot agree, ${ users[1].familiar() } will have the children
       every other weekend from Friday at 5 p.m. to Sunday at 5 p.m."
-  - Is there a holiday or vacation schedule to attach?: parenting_time_attached_schedule
-    datatype: radio
-    choices:
-      - Yes
-      - No
 validation code: |
   if len(parenting_time_fallback.split()) < 8:
     validation_error("Give a set schedule with days and times, for example which weekends and what hours.", field="parenting_time_fallback")
 ---
+id: holidays and vacations
+question: |
+  Holidays and school vacations
+subquestion: |
+  Holidays and school vacations usually replace the regular schedule. Say how
+  you will share them.
+fields:
+  - Holidays: sa_holiday_plan
+    datatype: radio
+    choices:
+      - We will alternate holidays from year to year: alternate
+      - We will split each holiday, so each parent has part of the day: split
+      - Each parent will have the same holidays every year: fixed
+      - The regular schedule applies on holidays: regular
+      - We will attach our own holiday schedule: attach
+      - Something else: other
+  - Which holidays, and who has each one?: sa_holiday_details
+    datatype: area
+    required: False
+    help: |
+      For example: "Thanksgiving and Christmas Eve with ${ users[0].familiar() }
+      in even-numbered years and with ${ users[1].familiar() } in odd-numbered
+      years. Mother's Day with the mother and Father's Day with the father."
+      Required if you chose "Each parent will have the same holidays every
+      year" or "Something else".
+  - School vacations: sa_vacation_plan
+    datatype: radio
+    choices:
+      - We will alternate school vacations from year to year: alternate
+      - We will split each school vacation in half: split
+      - The regular schedule applies during school vacations: regular
+      - Something else: other
+  - Describe the school vacation plan: sa_vacation_details
+    datatype: area
+    required: False
+    help: |
+      For example, who has the children during the February and April
+      vacations and for how many weeks each summer. Required if you chose
+      "Something else".
+validation code: |
+  if sa_holiday_plan in ("fixed", "other") and not (sa_holiday_details or "").strip():
+    validation_error("Say which holidays each parent has.", field="sa_holiday_details")
+  if sa_vacation_plan == "other" and not (sa_vacation_details or "").strip():
+    validation_error("Describe the school vacation plan.", field="sa_vacation_details")
+---
+code: |
+  parenting_time_attached_schedule = "Yes" if sa_holiday_plan == "attach" else "No"
+  _holiday = {
+    "alternate": "The parties will alternate holidays from year to year.",
+    "split": "The parties will split each holiday, so that each parent has the children for part of the day.",
+    "fixed": "Each parent will have the same holidays every year, as follows:",
+    "regular": "The regular parenting schedule applies on holidays.",
+    "attach": "The parties' holiday schedule is attached.",
+    "other": "The parties agree to the following holiday schedule:",
+  }[sa_holiday_plan]
+  if (sa_holiday_details or "").strip():
+    _holiday += " " + sa_holiday_details.strip()
+  _vacation = {
+    "alternate": "The parties will alternate school vacations from year to year.",
+    "split": "The parties will split each school vacation in half.",
+    "regular": "The regular parenting schedule applies during school vacations.",
+    "other": "The parties agree to the following school vacation schedule:",
+  }[sa_vacation_plan]
+  if (sa_vacation_details or "").strip():
+    _vacation += " " + sa_vacation_details.strip()
+  sa_holiday_text = "Holidays: " + _holiday
+  sa_vacation_text = "School vacations: " + _vacation
+---
 code: |
   # Every agreement now includes a parenting time plan.
   parenting_time_assigned = True
+---
+id: parenting communication
+question: |
+  How you will talk about the children
+subquestion: |
+  Agreeing on how you will reach each other about the children, such as
+  schedule changes, school, and health, can prevent misunderstandings.
+  Choose every way you agree to use.
+fields:
+  - How will you communicate with each other about the children?: parenting_communication_methods
+    datatype: checkboxes
+    choices:
+      - Phone calls: phone
+      - Text messages: text
+      - Email: email
+      - A co-parenting app: app
+      - In person: in_person
+    none of the above: We haven't agreed on this
+---
+code: |
+  sa_communication_labels = [
+    ("phone", "phone calls"),
+    ("text", "text messages"),
+    ("email", "email"),
+    ("app", "a co-parenting app"),
+    ("in_person", "in-person conversations"),
+  ]
+  sa_communication_list = comma_and_list([label for key, label in sa_communication_labels if parenting_communication_methods[key]])
 ---
 #################### Child Support #####################
 
@@ -923,6 +1041,11 @@ id: child tax
 question: |
   Claiming children on taxes
 subquestion: |
+  For federal taxes, the parent the child lived with for more nights during
+  the year is the custodial parent. The other parent can claim the child only
+  if the custodial parent signs IRS Form 8332 or a similar written statement
+  ([IRS Publication 504](https://www.irs.gov/publications/p504)).
+
   [Learn more about the Massachusetts Child and Family Tax Credit](https://www.mass.gov/info-details/massachusetts-child-and-family-tax-credit)
 fields:
   - Will the same parent claim the children every year?: child_tax_claim_single_party
@@ -1139,8 +1262,10 @@ question: |
   Taxes
 subquestion: |
   If your divorce is not final by December 31, you are still married for
-  that tax year and file either jointly or as married filing separately. A
-  divorce judgment becomes final 90 days after it enters
+  that tax year and file either jointly or as married filing separately. In a
+  1A divorce, the judgment (called a judgment nisi) enters 30 days after the
+  judge approves your agreement, and the divorce becomes final 90 days after
+  that
   ([G.L. c. 208, § 21](https://malegislature.gov/Laws/GeneralLaws/PartII/TitleIII/Chapter208/Section21)).
   Once it is final, you file as single, or as head of household if you
   qualify ([IRS Publication 504](https://www.irs.gov/publications/p504)).
@@ -1161,6 +1286,10 @@ fields:
       variable: taxes_custom_terms
       is: True
   - Have you both filed and paid all taxes during the marriage?: taxes_fully_reported
+    help: |
+      Answer yes only if every joint return you filed during the marriage was
+      filed and fully paid, and no one is auditing you or trying to collect
+      unpaid taxes from you.
     datatype: radio
     choices:
       - Yes: True
@@ -1177,6 +1306,11 @@ fields:
       variable: taxes_fully_reported
       is: False
   - Who will be responsible for the unpaid tax debt?: tax_debt_responsible_party
+    help: |
+      Your agreement decides who pays between the two of you. But the IRS can
+      still collect unpaid tax on a joint return from either of you, even if
+      the agreement says the other spouse will pay
+      ([IRS Publication 504](https://www.irs.gov/publications/p504)).
     datatype: radio
     choices:
       - ${ users[0].name.full() }
@@ -1294,15 +1428,24 @@ fields:
 ---
 id: alimony end date
 question: |
-  Alimony — end date
+  When alimony ends
 subquestion: |
-  Alimony typically ends on a specific date, or when a triggering event
-  occurs such as remarriage or cohabitation. Specify the end date below if
-  you have agreed to one.
+  The agreement always says alimony ends if ${ alimony_recipient } remarries
+  or either of you dies, as Massachusetts law provides
+  ([G.L. c. 208, § 49](https://malegislature.gov/Laws/GeneralLaws/PartII/TitleIII/Chapter208/Section49)).
+  You can also choose an end date, and whether living with a new partner
+  affects it.
 fields:
   - End date for alimony payments: alimony_end_date
     datatype: date
     required: False
+  - Can alimony be suspended, reduced, or ended if ${ alimony_recipient } lives with another person for at least three months in a row?: alimony_ends_on_cohabitation
+    datatype: yesnoradio
+    default: True
+    help: |
+      Massachusetts law allows this for general term alimony when the person
+      receiving it shares a home with someone else for at least three
+      continuous months ([G.L. c. 208, § 49(d)](https://malegislature.gov/Laws/GeneralLaws/PartII/TitleIII/Chapter208/Section49)).
 ---
 id: alimony additional terms
 question: |
@@ -1320,22 +1463,53 @@ id: real estate ownership
 question: |
   Real estate
 subquestion: |
-  Do you and your spouse own any real estate together, such as a house,
-  condo, or land?
+  Do either of you own any real estate, such as a house, condo, or land,
+  alone or together?
+
+  In Massachusetts, a judge can divide all property either of you owns, no
+  matter whose name it is in, including property one of you owned before the
+  marriage or got as a gift or inheritance. Who paid for it and how you got it
+  can affect how it is divided
+  ([G.L. c. 208, § 34](https://malegislature.gov/Laws/GeneralLaws/PartII/TitleIII/Chapter208/Section34)).
+  If one of you will keep a home that has a mortgage, that spouse may need to
+  {refinance}.
+terms:
+  refinance: |
+    Replacing a mortgage with a new loan, often so the house is only in one
+    spouse's name.
 fields:
-  - Do you own real estate together?: no_real_estate
+  - Do either of you own real estate?: no_real_estate
     input type: radio
     choices:
       - Yes: False
       - No: True
 ---
+code: |
+  sa_properties.there_are_any = not no_real_estate
+---
+id: another property
+question: |
+  Do either of you own any other real estate?
+subquestion: |
+  So far: ${ comma_and_list([prop.address for prop in sa_properties.complete_elements()]) }.
+fields:
+  - no label: sa_properties.there_is_another
+    datatype: yesnoradio
+---
 id: real estate property info
 question: |
-  Real estate — property details
+  % if len(sa_properties.complete_elements()):
+  Your next property
+  % else:
+  Your property
+  % endif
+subquestion: |
+  The book and page numbers appear on the deed and identify the property in
+  the Registry of Deeds.
 fields:
-  - What is the full address of the property?: real_estate_address
-  - Whose name is currently on the deed?: real_estate_current_owner
-  - What county is the property in?: real_estate_county
+  - What is the full address of the property?: sa_properties[i].address
+  - Whose name is on the deed?: sa_properties[i].deed_names
+  - What county is the property in?: sa_properties[i].county
     input type: dropdown
     choices:
       - Barnstable
@@ -1352,73 +1526,302 @@ fields:
       - Plymouth
       - Suffolk
       - Worcester
+  - Book number: sa_properties[i].book
+  - Page number: sa_properties[i].page
 ---
-id: real estate registry info
+id: real estate loans
 question: |
-  Real estate — registry of deeds
+  Loans on ${ sa_properties[i].address }
 subquestion: |
-  The book and page numbers appear on your deed and identify your property
-  in the Registry of Deeds.
+  Choose every loan that ${ sa_properties[i].address } secures.
 fields:
-  - Book number: real_estate_book
-  - Page number: real_estate_page
+  - no label: sa_properties[i].loan_types
+    datatype: checkboxes
+    choices:
+      - A first mortgage: first
+      - A second mortgage: second
+      - A home equity loan or line of credit (HELOC): heloc
+    none of the above: There are no loans on this property
 ---
-id: real estate division
+id: real estate plan
 question: |
-  Real estate — will one party keep the property?
+  How will you handle ${ sa_properties[i].address }?
 fields:
-  - Do you agree on how to divide the real estate?: real_estate_custom_terms
-    input type: radio
+  - no label: sa_properties[i].plan
+    datatype: radio
     choices:
-      - Yes: True
-      - No: False
-  - Will one party keep the property?: real_estate_transfer
-    input type: radio
-    choices:
-      - Yes: True
-      - No: False
-    show if:
-      variable: real_estate_custom_terms
-      is: True
+      - One of us will keep it: keep
+      - We will sell it: sell
+      - We will keep owning it together for now: together
+      - Something else: other
 ---
-id: real estate transfer details
+id: real estate keep
 question: |
-  Real estate — transfer details
+  Who will keep ${ sa_properties[i].address }?
+subquestion: |
+  The spouse who keeps the property becomes its only owner. The other spouse
+  signs a deed transferring their share.
 fields:
-  - Who will keep the property?: real_estate_owner_name
+  - Who will keep it?: sa_properties[i].keeper
     input type: radio
     choices:
       - ${ users[0].name.full() }
       - ${ users[1].name.full() }
-  - Is either party waiving their interest in the property?: real_estate_waiver_party
-    input type: radio
-    choices:
-      - No
-      - ${ users[0].name.full() }
-      - ${ users[1].name.full() }
-  - Who will be responsible for ongoing costs (mortgage, taxes, insurance)?: real_estate_cost_responsible
-    input type: radio
-    choices:
-      - ${ users[0].name.full() }
-      - ${ users[1].name.full() }
-  - When does that cost responsibility begin?: real_estate_start_date
+  - From what date will they pay all its costs, including the mortgage, taxes, and insurance?: sa_properties[i].costs_from
     datatype: date
+  - By what date will the other spouse sign the deed transferring their share?: sa_properties[i].deed_by
+    datatype: date
+    required: False
+  - By what date will they refinance or otherwise remove the other spouse from the loans?: sa_properties[i].refinance_by
+    datatype: date
+    required: False
+    help: |
+      Leave blank if the property has no loans.
+  - Will they pay the other spouse for their share? If so, how much?: sa_properties[i].buyout_amount
+    datatype: currency
+    min: 0
+    required: False
+    help: |
+      Leave blank if no payment is part of the agreement.
+  - By what date will they make that payment?: sa_properties[i].buyout_by
+    datatype: date
+    required: False
+---
+id: real estate sell
+question: |
+  Selling ${ sa_properties[i].address }
+fields:
+  - By what date will you list it for sale?: sa_properties[i].list_by
+    datatype: date
+  - Until it is sold, who pays the mortgage, taxes, insurance, and other costs?: sa_properties[i].sale_costs_payer
+    input type: radio
+    choices:
+      - ${ users[0].name.full() }: a
+      - ${ users[1].name.full() }: b
+      - We split them equally: both
+  - What percent of the money left after the sale goes to ${ users[0].name.full() }?: sa_properties[i].sale_share_a
+    datatype: integer
+    min: 0
+    max: 100
+    default: 50
+    help: |
+      The money left after the sale means the price minus the costs of the
+      sale and any loans paid off. The rest goes to ${ users[1].name.full() }.
+---
+id: real estate together
+question: |
+  Owning ${ sa_properties[i].address } together
+fields:
+  - What percent share will ${ users[0].name.full() } own?: sa_properties[i].own_share_a
+    datatype: integer
+    min: 0
+    max: 100
+    default: 50
+    help: |
+      ${ users[1].name.full() } owns the rest.
+  - Who pays the mortgage, taxes, and insurance?: sa_properties[i].own_costs_payer
+    input type: radio
+    choices:
+      - ${ users[0].name.full() }: a
+      - ${ users[1].name.full() }: b
+      - We split them equally: both
+  - When will it be sold?: sa_properties[i].sale_when
+    help: |
+      A date or an event, for example "when our youngest child finishes high
+      school" or "by June 30, 2032".
+---
+id: real estate other
+question: |
+  Your plan for ${ sa_properties[i].address }
+fields:
+  - Describe what you agreed: sa_properties[i].other_description
+    datatype: area
 ---
 id: real estate additional terms
 question: |
-  Real estate agreement details
+  Anything else about ${ sa_properties[i].address }?
 subquestion: |
-  If you have any additional terms for the real estate, describe them here. Leave blank if none.
+  For example, who handles repairs or maintenance. Leave blank if nothing else.
 fields:
-  - Describe your real estate agreement in detail, including who keeps the property, how the mortgage or ongoing costs will be handled, any buyout arrangements, and by what date any transfer must be completed: real_estate_custom_description
+  - Other terms for this property: sa_properties[i].custom_description
     datatype: area
     required: False
+---
+code: |
+  # Ask in a fixed order, then build the agreement's paragraph.
+  sa_properties[i].address
+  sa_properties[i].loan_types
+  sa_properties[i].plan
+  if sa_properties[i].plan == "keep":
+    sa_properties[i].keeper
+  elif sa_properties[i].plan == "sell":
+    sa_properties[i].list_by
+  elif sa_properties[i].plan == "together":
+    sa_properties[i].own_share_a
+  else:
+    sa_properties[i].other_description
+  sa_properties[i].custom_description
+  # Build the agreement's paragraph here, so editing the property rebuilds it.
+  _a = users[0].name.full()
+  _b = users[1].name.full()
+  _prop = sa_properties[i]
+  _loans = {"first": "a first mortgage", "second": "a second mortgage", "heloc": "a home equity loan or line of credit"}
+  _loan_list = [_loans[k] for k in _prop.loan_types.true_values()]
+  _text = (
+    f"The real estate located at {_prop.address} currently stands in the name of {_prop.deed_names}, "
+    f"as recorded with the {_prop.county} County Registry of Deeds, Book {_prop.book}, Page {_prop.page}."
+  )
+  if _loan_list:
+    _text += f" It is subject to {comma_and_list(_loan_list)}."
+  _payer_phrase = {"a": f"{_a} will pay", "b": f"{_b} will pay", "both": "the parties will equally share the cost of"}
+  if _prop.plan == "keep":
+    _other = _b if _prop.keeper == _a else _a
+    _text += (
+      f" {_prop.keeper} will be the sole owner of the property. {_other} waives all past, present and future "
+      f"interest in it and will sign a deed transferring that interest to {_prop.keeper}"
+      + (f" by {_prop.deed_by}" if _prop.deed_by else "") + "."
+    )
+    if _loan_list:
+      _text += (
+        f" {_prop.keeper} will refinance or otherwise remove {_other} from all loans on the property"
+        + (f" by {_prop.refinance_by}" if _prop.refinance_by else "") + "."
+      )
+    _text += (
+      f" {_prop.keeper} will be responsible for all costs and expenses of the property, including the mortgage, "
+      f"taxes, and insurance, beginning on {_prop.costs_from}."
+    )
+    if _prop.buyout_amount:
+      _text += (
+        f" {_prop.keeper} will pay {_other} {currency(_prop.buyout_amount)} for {_other}'s interest in the property"
+        + (f" by {_prop.buyout_by}" if _prop.buyout_by else "") + "."
+      )
+  elif _prop.plan == "sell":
+    _text += (
+      f" The parties will list the property for sale by {_prop.list_by} and sell it. Until it is sold, "
+      f"{_payer_phrase[_prop.sale_costs_payer]} the mortgage, taxes, insurance, and other costs of the property. "
+      f"After the costs of sale and any loans on the property are paid, {_a} will receive {_prop.sale_share_a}% and "
+      f"{_b} will receive {100 - _prop.sale_share_a}% of the proceeds."
+    )
+  elif _prop.plan == "together":
+    _text += (
+      f" The parties will continue to own the property together, with {_a} holding a {_prop.own_share_a}% share and "
+      f"{_b} a {100 - _prop.own_share_a}% share. {_payer_phrase[_prop.own_costs_payer][0].upper() + _payer_phrase[_prop.own_costs_payer][1:]} the mortgage, taxes, and insurance. "
+      f"The property will be sold {_prop.sale_when}, and after the costs of sale and any loans on the property are "
+      f"paid, the proceeds will be divided in the same shares."
+    )
+  else:
+    _text += f" The parties agree that: {_prop.other_description}"
+  if _prop.custom_description and _prop.custom_description.strip():
+    _text += f" The parties further agree that: {_prop.custom_description.strip()}"
+  sa_properties[i].agreement_text = _text
+  sa_properties[i].complete = True
+---
+#################### Vehicles #####################
+
+code: |
+  sa_vehicles.there_are_any = sa_have_vehicles
+---
+id: vehicles
+question: |
+  Vehicles
+fields:
+  - Do either of you own a car, truck, motorcycle, or other vehicle?: sa_have_vehicles
+    datatype: yesnoradio
+---
+id: another vehicle
+question: |
+  Do either of you own another vehicle?
+subquestion: |
+  So far: ${ comma_and_list([v.description for v in sa_vehicles.complete_elements()]) }.
+fields:
+  - no label: sa_vehicles.there_is_another
+    datatype: yesnoradio
+---
+id: vehicle details
+question: |
+  % if len(sa_vehicles.complete_elements()):
+  Your next vehicle
+  % else:
+  Your vehicle
+  % endif
+fields:
+  - Year, make, and model: sa_vehicles[i].description
+    help: |
+      For example, "2018 Honda Civic".
+  - Vehicle identification number (VIN): sa_vehicles[i].vin
+    required: False
+    help: |
+      The VIN is on the title, the registration, and the driver's side of the
+      dashboard. It makes the agreement clear about which vehicle is meant.
+  - Who will keep it?: sa_vehicles[i].keeper
+    input type: radio
+    choices:
+      - ${ users[0].name.full() }
+      - ${ users[1].name.full() }
+  - Is there a loan on it?: sa_vehicles[i].has_loan
+    datatype: yesnoradio
+---
+code: |
+  _a = users[0].name.full()
+  _b = users[1].name.full()
+  _v = sa_vehicles[i]
+  _other = _b if _v.keeper == _a else _a
+  sa_vehicles[i].agreement_text = (
+    f"{_v.keeper} will keep the {_v.description}"
+    + (f" (VIN {_v.vin})" if _v.vin else "")
+    + (f" and will pay any loan on it" if _v.has_loan else "")
+    + f". {_other} waives all interest in it."
+  )
+  sa_vehicles[i].complete = True
+---
+#################### Balancing payment #####################
+
+id: equalization
+question: |
+  Balancing the division
+subquestion: |
+  If one of you keeps more of your property or debts than the other, you can
+  agree that one of you pays the other an amount to even it out.
+fields:
+  - Will one of you pay the other an amount to balance the division of your property?: sa_equalization_agreed
+    datatype: yesnoradio
+    default: False
+  - Who will pay?: sa_equalization_payer
+    input type: radio
+    choices:
+      - ${ users[0].name.full() }
+      - ${ users[1].name.full() }
+    show if: sa_equalization_agreed
+  - How much?: sa_equalization_amount
+    datatype: currency
+    min: 0
+    show if: sa_equalization_agreed
+  - By what date?: sa_equalization_by
+    datatype: date
+    show if: sa_equalization_agreed
+---
+code: |
+  if sa_equalization_agreed:
+    sa_equalization_payee = users[1].name.full() if sa_equalization_payer == users[0].name.full() else users[0].name.full()
+    sa_equalization_text = (
+      f"To balance the division of property, {sa_equalization_payer} will pay {sa_equalization_payee} "
+      f"{currency(sa_equalization_amount)} by {sa_equalization_by}."
+    )
+  else:
+    sa_equalization_text = ""
 ---
 #################### Personal Property #####################
 
 id: personal property
 question: |
   Personal property
+subquestion: |
+  {Personal property} means things you own other than land or buildings, like
+  cars, furniture, jewelry, and household items. You don't need to list them.
+terms:
+  Personal property: |
+    Things you own other than land or buildings, like cars, furniture,
+    jewelry, and household items.
 fields:
   - Have you already divided all of your personal property?: personal_property_already_divided
     input type: radio
@@ -1443,6 +1846,18 @@ fields:
     show if:
       variable: personal_property_divide_plan
       is: True
+  - Within how many days will each of you remove property that belongs to the other, after advance notice?: personal_property_removal_days
+    datatype: integer
+    min: 1
+    required: False
+    help: |
+      Leave blank if nothing needs to be moved.
+  - Within how many days of the court's approval will titles, such as a vehicle's, be transferred?: personal_property_title_days
+    datatype: integer
+    min: 1
+    required: False
+    help: |
+      Leave blank if no titles need to change.
 ---
 #################### Debts #####################
 
@@ -1513,6 +1928,12 @@ fields:
 id: retirement
 question: |
   Pension and retirement plans
+subquestion: |
+  Retirement benefits include pensions, 401(k) and 403(b) plans, IRAs, and
+  government, military, or union pensions. Count accounts in either spouse's
+  name. A Massachusetts judge can divide retirement savings that either of you
+  has, no matter whose name the account is in
+  ([G.L. c. 208, § 34](https://malegislature.gov/Laws/GeneralLaws/PartII/TitleIII/Chapter208/Section34)).
 fields:
   - Do either of you have retirement or pension benefits?: no_retirement_benefits
     input type: radio
@@ -1520,6 +1941,9 @@ fields:
       - Yes: False
       - No: True
   - Are you waiving interest in each other's retirement or pension benefits?: retirement_interest_waived
+    help: |
+      If you waive, each of you gives up any claim to the other's pension or
+      retirement benefits.
     input type: radio
     choices:
       - Yes: True
@@ -1536,6 +1960,16 @@ fields:
       variable: retirement_interest_waived
       is: False
   - How will you divide retirement or pension benefits?: retirement_division_description
+    help: |
+      Name each account and say how it is divided. To find an account's
+      value, use the balance on the most recent statement; for a pension, use
+      the estimated benefit on the latest pension statement.
+
+      Dividing a 401(k), pension, or similar workplace plan takes a separate
+      court order called a Qualified Domestic Relations Order (QDRO). It tells
+      the plan how much to pay each of you. An IRA can be split by transfer
+      under the divorce judgment, without a QDRO
+      ([IRS Publication 504](https://www.irs.gov/publications/p504)).
     datatype: area
     show if:
       variable: retirement_benefits_divided
@@ -1775,6 +2209,16 @@ review:
 
       **If you can't agree**: ${ parenting_time_fallback }
     show if: has_children
+  - Edit: sa_holiday_plan
+    button: |
+      ${ sa_holiday_text }
+
+      ${ sa_vacation_text }
+    show if: has_children
+  - Edit: parenting_communication_methods
+    button: |
+      **How you will communicate**: ${ sa_communication_list or "Not agreed" }
+    show if: has_children
   - Edit: child_support_payer
     button: |
       **Child support payer**: ${ child_support_payer }
@@ -1808,12 +2252,29 @@ review:
   - Edit: alimony_waived_all
     button: |
       **Alimony waived**: ${ word(yesno(alimony_waived_all)) }
-  - Edit: no_real_estate
+  - Edit: alimony_end_date
     button: |
-      **Own real estate together**: ${ word(yesno(not no_real_estate)) }
+      **Alimony end date**: ${ alimony_end_date if alimony_end_date else "None" }.
+      **Can end with cohabitation**: ${ word(yesno(alimony_ends_on_cohabitation)) }
+    show if: not alimony_waived_all and alimony_payment_agreed
+  - Edit: sa_properties.revisit
+    button: |
+      **Real estate**: ${ comma_and_list([prop.address for prop in sa_properties]) if not no_real_estate else "None" }
+  - Edit: sa_vehicles.revisit
+    button: |
+      **Vehicles**: ${ comma_and_list([v.description for v in sa_vehicles]) if sa_have_vehicles else "None" }
+  - Edit: sa_equalization_agreed
+    button: |
+      **Balancing payment**: ${ sa_equalization_text or "None" }
   - Edit: personal_property_already_divided
     button: |
       **Personal property already divided**: ${ word(yesno(personal_property_already_divided)) }
+      % if personal_property_removal_days:
+      **Remove the other's property within**: ${ personal_property_removal_days } days
+      % endif
+      % if personal_property_title_days:
+      **Transfer titles within**: ${ personal_property_title_days } days
+      % endif
   - Edit: no_marital_debt
     button: |
       **Have shared marital debt**: ${ word(yesno(not no_marital_debt)) }
@@ -1855,6 +2316,48 @@ columns:
 edit:
   - name.first
   - address.address
+confirm: True
+---
+id: edit properties
+continue button field: sa_properties.revisit
+question: |
+  Edit your real estate
+subquestion: |
+  ${ sa_properties.table }
+
+  ${ sa_properties.add_action() }
+---
+table: sa_properties.table
+rows: sa_properties
+columns:
+  - Address: |
+      row_item.address if defined("row_item.address") else ""
+  - Plan: |
+      {"keep": "One keeps it", "sell": "Sell it", "together": "Keep owning it together", "other": "Something else"}.get(row_item.plan, "") if defined("row_item.plan") else ""
+edit:
+  - address
+  - loan_types
+  - plan
+confirm: True
+---
+id: edit vehicles
+continue button field: sa_vehicles.revisit
+question: |
+  Edit your vehicles
+subquestion: |
+  ${ sa_vehicles.table }
+
+  ${ sa_vehicles.add_action() }
+---
+table: sa_vehicles.table
+rows: sa_vehicles
+columns:
+  - Vehicle: |
+      row_item.description if defined("row_item.description") else ""
+  - Kept by: |
+      row_item.keeper if defined("row_item.keeper") else ""
+edit:
+  - description
 confirm: True
 ---
 id: edit children
@@ -1899,6 +2402,10 @@ continue button field: separation_agreement_intro_screen
 ---
 #################### Objects and attachments #####################
 
+objects:
+  - sa_properties: DAList.using(object_type=DAObject, complete_attribute="complete")
+  - sa_vehicles: DAList.using(object_type=DAObject, complete_attribute="complete")
+---
 objects:
   - a_divorce_agreement_attachment: ALDocument.using(title="1A Divorce Separation Agreement", filename="a_divorce_agreement", has_addendum=False, enabled=True)
   - a_divorce_agreement_Post_interview_instructions: ALDocument.using(title="Instructions", filename="a_divorce_agreement_next_steps", has_addendum=False, enabled=True)
