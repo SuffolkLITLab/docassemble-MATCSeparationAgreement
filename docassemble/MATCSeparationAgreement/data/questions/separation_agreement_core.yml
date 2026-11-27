@@ -242,24 +242,12 @@ code: |
 
   nav.set_section("real_estate")
   no_real_estate
-  if not no_real_estate:
-    real_estate_address
-    real_estate_current_owner
-    real_estate_county
-    real_estate_book
-    real_estate_page
-    real_estate_custom_terms
-    if real_estate_custom_terms:
-      real_estate_transfer
-      if real_estate_transfer:
-        real_estate_owner_name
-        real_estate_waiver_party
-        real_estate_cost_responsible
-        real_estate_start_date
-    real_estate_custom_description
+  sa_properties.gather()
 
   nav.set_section("personal_property")
+  sa_vehicles.gather()
   personal_property_already_divided
+  sa_equalization_text
 
   nav.set_section("debts")
   no_marital_debt
@@ -1375,8 +1363,8 @@ id: real estate ownership
 question: |
   Real estate
 subquestion: |
-  Do you and your spouse own any real estate together, such as a house,
-  condo, or land?
+  Do either of you own any real estate, such as a house, condo, or land,
+  alone or together?
 
   In Massachusetts, a judge can divide all property either of you owns, no
   matter whose name it is in, including property one of you owned before the
@@ -1390,19 +1378,38 @@ terms:
     Replacing a mortgage with a new loan, often so the house is only in one
     spouse's name.
 fields:
-  - Do you own real estate together?: no_real_estate
+  - Do either of you own real estate?: no_real_estate
     input type: radio
     choices:
       - Yes: False
       - No: True
 ---
+code: |
+  sa_properties.there_are_any = not no_real_estate
+---
+id: another property
+question: |
+  Do either of you own any other real estate?
+subquestion: |
+  So far: ${ comma_and_list([prop.address for prop in sa_properties.complete_elements()]) }.
+fields:
+  - no label: sa_properties.there_is_another
+    datatype: yesnoradio
+---
 id: real estate property info
 question: |
-  Real estate — property details
+  % if len(sa_properties.complete_elements()):
+  Your next property
+  % else:
+  Your property
+  % endif
+subquestion: |
+  The book and page numbers appear on the deed and identify the property in
+  the Registry of Deeds.
 fields:
-  - What is the full address of the property?: real_estate_address
-  - Whose name is currently on the deed?: real_estate_current_owner
-  - What county is the property in?: real_estate_county
+  - What is the full address of the property?: sa_properties[i].address
+  - Whose name is on the deed?: sa_properties[i].deed_names
+  - What county is the property in?: sa_properties[i].county
     input type: dropdown
     choices:
       - Barnstable
@@ -1419,67 +1426,289 @@ fields:
       - Plymouth
       - Suffolk
       - Worcester
+  - Book number: sa_properties[i].book
+  - Page number: sa_properties[i].page
 ---
-id: real estate registry info
+id: real estate loans
 question: |
-  Real estate — registry of deeds
+  Loans on ${ sa_properties[i].address }
 subquestion: |
-  The book and page numbers appear on your deed and identify your property
-  in the Registry of Deeds.
+  Choose every loan that ${ sa_properties[i].address } secures.
 fields:
-  - Book number: real_estate_book
-  - Page number: real_estate_page
+  - no label: sa_properties[i].loan_types
+    datatype: checkboxes
+    choices:
+      - A first mortgage: first
+      - A second mortgage: second
+      - A home equity loan or line of credit (HELOC): heloc
+    none of the above: There are no loans on this property
 ---
-id: real estate division
+id: real estate plan
 question: |
-  Real estate — will one party keep the property?
+  How will you handle ${ sa_properties[i].address }?
 fields:
-  - Do you agree on how to divide the real estate?: real_estate_custom_terms
-    input type: radio
+  - no label: sa_properties[i].plan
+    datatype: radio
     choices:
-      - Yes: True
-      - No: False
-  - Will one party keep the property?: real_estate_transfer
-    input type: radio
-    choices:
-      - Yes: True
-      - No: False
-    show if:
-      variable: real_estate_custom_terms
-      is: True
+      - One of us will keep it: keep
+      - We will sell it: sell
+      - We will keep owning it together for now: together
+      - Something else: other
 ---
-id: real estate transfer details
+id: real estate keep
 question: |
-  Real estate — transfer details
+  Who will keep ${ sa_properties[i].address }?
+subquestion: |
+  The spouse who keeps the property becomes its only owner. The other spouse
+  signs a deed transferring their share.
 fields:
-  - Who will keep the property?: real_estate_owner_name
+  - Who will keep it?: sa_properties[i].keeper
     input type: radio
     choices:
       - ${ users[0].name.full() }
       - ${ users[1].name.full() }
-  - Is either party waiving their interest in the property?: real_estate_waiver_party
-    input type: radio
-    choices:
-      - No
-      - ${ users[0].name.full() }
-      - ${ users[1].name.full() }
-  - Who will be responsible for ongoing costs (mortgage, taxes, insurance)?: real_estate_cost_responsible
-    input type: radio
-    choices:
-      - ${ users[0].name.full() }
-      - ${ users[1].name.full() }
-  - When does that cost responsibility begin?: real_estate_start_date
+  - From what date will they pay all its costs, including the mortgage, taxes, and insurance?: sa_properties[i].costs_from
     datatype: date
+  - By what date will the other spouse sign the deed transferring their share?: sa_properties[i].deed_by
+    datatype: date
+    required: False
+  - By what date will they refinance or otherwise remove the other spouse from the loans?: sa_properties[i].refinance_by
+    datatype: date
+    required: False
+    help: |
+      Leave blank if the property has no loans.
+  - Will they pay the other spouse for their share? If so, how much?: sa_properties[i].buyout_amount
+    datatype: currency
+    min: 0
+    required: False
+    help: |
+      Leave blank if no payment is part of the agreement.
+  - By what date will they make that payment?: sa_properties[i].buyout_by
+    datatype: date
+    required: False
+---
+id: real estate sell
+question: |
+  Selling ${ sa_properties[i].address }
+fields:
+  - By what date will you list it for sale?: sa_properties[i].list_by
+    datatype: date
+  - Until it is sold, who pays the mortgage, taxes, insurance, and other costs?: sa_properties[i].sale_costs_payer
+    input type: radio
+    choices:
+      - ${ users[0].name.full() }: a
+      - ${ users[1].name.full() }: b
+      - We split them equally: both
+  - What percent of the money left after the sale goes to ${ users[0].name.full() }?: sa_properties[i].sale_share_a
+    datatype: integer
+    min: 0
+    max: 100
+    default: 50
+    help: |
+      The money left after the sale means the price minus the costs of the
+      sale and any loans paid off. The rest goes to ${ users[1].name.full() }.
+---
+id: real estate together
+question: |
+  Owning ${ sa_properties[i].address } together
+fields:
+  - What percent share will ${ users[0].name.full() } own?: sa_properties[i].own_share_a
+    datatype: integer
+    min: 0
+    max: 100
+    default: 50
+    help: |
+      ${ users[1].name.full() } owns the rest.
+  - Who pays the mortgage, taxes, and insurance?: sa_properties[i].own_costs_payer
+    input type: radio
+    choices:
+      - ${ users[0].name.full() }: a
+      - ${ users[1].name.full() }: b
+      - We split them equally: both
+  - When will it be sold?: sa_properties[i].sale_when
+    help: |
+      A date or an event, for example "when our youngest child finishes high
+      school" or "by June 30, 2032".
+---
+id: real estate other
+question: |
+  Your plan for ${ sa_properties[i].address }
+fields:
+  - Describe what you agreed: sa_properties[i].other_description
+    datatype: area
 ---
 id: real estate additional terms
 question: |
-  Real estate agreement details
+  Anything else about ${ sa_properties[i].address }?
 subquestion: |
-  If you have any additional terms for the real estate, describe them here. Leave blank if none.
+  For example, who handles repairs or maintenance. Leave blank if nothing else.
 fields:
-  - Describe your real estate agreement in detail, including who keeps the property, how the mortgage or ongoing costs will be handled, any buyout arrangements, and by what date any transfer must be completed: real_estate_custom_description
+  - Other terms for this property: sa_properties[i].custom_description
     datatype: area
     required: False
+---
+code: |
+  # Ask in a fixed order, then build the agreement's paragraph.
+  sa_properties[i].address
+  sa_properties[i].loan_types
+  sa_properties[i].plan
+  if sa_properties[i].plan == "keep":
+    sa_properties[i].keeper
+  elif sa_properties[i].plan == "sell":
+    sa_properties[i].list_by
+  elif sa_properties[i].plan == "together":
+    sa_properties[i].own_share_a
+  else:
+    sa_properties[i].other_description
+  sa_properties[i].custom_description
+  # Build the agreement's paragraph here, so editing the property rebuilds it.
+  _a = users[0].name.full()
+  _b = users[1].name.full()
+  _prop = sa_properties[i]
+  _loans = {"first": "a first mortgage", "second": "a second mortgage", "heloc": "a home equity loan or line of credit"}
+  _loan_list = [_loans[k] for k in _prop.loan_types.true_values()]
+  _text = (
+    f"The real estate located at {_prop.address} currently stands in the name of {_prop.deed_names}, "
+    f"as recorded with the {_prop.county} County Registry of Deeds, Book {_prop.book}, Page {_prop.page}."
+  )
+  if _loan_list:
+    _text += f" It is subject to {comma_and_list(_loan_list)}."
+  _payer_phrase = {"a": f"{_a} will pay", "b": f"{_b} will pay", "both": "the parties will equally share the cost of"}
+  if _prop.plan == "keep":
+    _other = _b if _prop.keeper == _a else _a
+    _text += (
+      f" {_prop.keeper} will be the sole owner of the property. {_other} waives all past, present and future "
+      f"interest in it and will sign a deed transferring that interest to {_prop.keeper}"
+      + (f" by {_prop.deed_by}" if _prop.deed_by else "") + "."
+    )
+    if _loan_list:
+      _text += (
+        f" {_prop.keeper} will refinance or otherwise remove {_other} from all loans on the property"
+        + (f" by {_prop.refinance_by}" if _prop.refinance_by else "") + "."
+      )
+    _text += (
+      f" {_prop.keeper} will be responsible for all costs and expenses of the property, including the mortgage, "
+      f"taxes, and insurance, beginning on {_prop.costs_from}."
+    )
+    if _prop.buyout_amount:
+      _text += (
+        f" {_prop.keeper} will pay {_other} {currency(_prop.buyout_amount)} for {_other}'s interest in the property"
+        + (f" by {_prop.buyout_by}" if _prop.buyout_by else "") + "."
+      )
+  elif _prop.plan == "sell":
+    _text += (
+      f" The parties will list the property for sale by {_prop.list_by} and sell it. Until it is sold, "
+      f"{_payer_phrase[_prop.sale_costs_payer]} the mortgage, taxes, insurance, and other costs of the property. "
+      f"After the costs of sale and any loans on the property are paid, {_a} will receive {_prop.sale_share_a}% and "
+      f"{_b} will receive {100 - _prop.sale_share_a}% of the proceeds."
+    )
+  elif _prop.plan == "together":
+    _text += (
+      f" The parties will continue to own the property together, with {_a} holding a {_prop.own_share_a}% share and "
+      f"{_b} a {100 - _prop.own_share_a}% share. {_payer_phrase[_prop.own_costs_payer][0].upper() + _payer_phrase[_prop.own_costs_payer][1:]} the mortgage, taxes, and insurance. "
+      f"The property will be sold {_prop.sale_when}, and after the costs of sale and any loans on the property are "
+      f"paid, the proceeds will be divided in the same shares."
+    )
+  else:
+    _text += f" The parties agree that: {_prop.other_description}"
+  if _prop.custom_description and _prop.custom_description.strip():
+    _text += f" The parties further agree that: {_prop.custom_description.strip()}"
+  sa_properties[i].agreement_text = _text
+  sa_properties[i].complete = True
+---
+#################### Vehicles #####################
+
+code: |
+  sa_vehicles.there_are_any = sa_have_vehicles
+---
+id: vehicles
+question: |
+  Vehicles
+fields:
+  - Do either of you own a car, truck, motorcycle, or other vehicle?: sa_have_vehicles
+    datatype: yesnoradio
+---
+id: another vehicle
+question: |
+  Do either of you own another vehicle?
+subquestion: |
+  So far: ${ comma_and_list([v.description for v in sa_vehicles.complete_elements()]) }.
+fields:
+  - no label: sa_vehicles.there_is_another
+    datatype: yesnoradio
+---
+id: vehicle details
+question: |
+  % if len(sa_vehicles.complete_elements()):
+  Your next vehicle
+  % else:
+  Your vehicle
+  % endif
+fields:
+  - Year, make, and model: sa_vehicles[i].description
+    help: |
+      For example, "2018 Honda Civic".
+  - Vehicle identification number (VIN): sa_vehicles[i].vin
+    required: False
+    help: |
+      The VIN is on the title, the registration, and the driver's side of the
+      dashboard. It makes the agreement clear about which vehicle is meant.
+  - Who will keep it?: sa_vehicles[i].keeper
+    input type: radio
+    choices:
+      - ${ users[0].name.full() }
+      - ${ users[1].name.full() }
+  - Is there a loan on it?: sa_vehicles[i].has_loan
+    datatype: yesnoradio
+---
+code: |
+  _a = users[0].name.full()
+  _b = users[1].name.full()
+  _v = sa_vehicles[i]
+  _other = _b if _v.keeper == _a else _a
+  sa_vehicles[i].agreement_text = (
+    f"{_v.keeper} will keep the {_v.description}"
+    + (f" (VIN {_v.vin})" if _v.vin else "")
+    + (f" and will pay any loan on it" if _v.has_loan else "")
+    + f". {_other} waives all interest in it."
+  )
+  sa_vehicles[i].complete = True
+---
+#################### Balancing payment #####################
+
+id: equalization
+question: |
+  Balancing the division
+subquestion: |
+  If one of you keeps more of your property or debts than the other, you can
+  agree that one of you pays the other an amount to even it out.
+fields:
+  - Will one of you pay the other an amount to balance the division of your property?: sa_equalization_agreed
+    datatype: yesnoradio
+    default: False
+  - Who will pay?: sa_equalization_payer
+    input type: radio
+    choices:
+      - ${ users[0].name.full() }
+      - ${ users[1].name.full() }
+    show if: sa_equalization_agreed
+  - How much?: sa_equalization_amount
+    datatype: currency
+    min: 0
+    show if: sa_equalization_agreed
+  - By what date?: sa_equalization_by
+    datatype: date
+    show if: sa_equalization_agreed
+---
+code: |
+  if sa_equalization_agreed:
+    sa_equalization_payee = users[1].name.full() if sa_equalization_payer == users[0].name.full() else users[0].name.full()
+    sa_equalization_text = (
+      f"To balance the division of property, {sa_equalization_payer} will pay {sa_equalization_payee} "
+      f"{currency(sa_equalization_amount)} by {sa_equalization_by}."
+    )
+  else:
+    sa_equalization_text = ""
 ---
 #################### Personal Property #####################
 
@@ -1922,9 +2151,15 @@ review:
       **Alimony end date**: ${ alimony_end_date if alimony_end_date else "None" }.
       **Can end with cohabitation**: ${ word(yesno(alimony_ends_on_cohabitation)) }
     show if: not alimony_waived_all and alimony_payment_agreed
-  - Edit: no_real_estate
+  - Edit: sa_properties.revisit
     button: |
-      **Own real estate together**: ${ word(yesno(not no_real_estate)) }
+      **Real estate**: ${ comma_and_list([prop.address for prop in sa_properties]) if not no_real_estate else "None" }
+  - Edit: sa_vehicles.revisit
+    button: |
+      **Vehicles**: ${ comma_and_list([v.description for v in sa_vehicles]) if sa_have_vehicles else "None" }
+  - Edit: sa_equalization_agreed
+    button: |
+      **Balancing payment**: ${ sa_equalization_text or "None" }
   - Edit: personal_property_already_divided
     button: |
       **Personal property already divided**: ${ word(yesno(personal_property_already_divided)) }
@@ -1977,6 +2212,48 @@ edit:
   - address.address
 confirm: True
 ---
+id: edit properties
+continue button field: sa_properties.revisit
+question: |
+  Edit your real estate
+subquestion: |
+  ${ sa_properties.table }
+
+  ${ sa_properties.add_action() }
+---
+table: sa_properties.table
+rows: sa_properties
+columns:
+  - Address: |
+      row_item.address if defined("row_item.address") else ""
+  - Plan: |
+      {"keep": "One keeps it", "sell": "Sell it", "together": "Keep owning it together", "other": "Something else"}.get(row_item.plan, "") if defined("row_item.plan") else ""
+edit:
+  - address
+  - loan_types
+  - plan
+confirm: True
+---
+id: edit vehicles
+continue button field: sa_vehicles.revisit
+question: |
+  Edit your vehicles
+subquestion: |
+  ${ sa_vehicles.table }
+
+  ${ sa_vehicles.add_action() }
+---
+table: sa_vehicles.table
+rows: sa_vehicles
+columns:
+  - Vehicle: |
+      row_item.description if defined("row_item.description") else ""
+  - Kept by: |
+      row_item.keeper if defined("row_item.keeper") else ""
+edit:
+  - description
+confirm: True
+---
 id: edit children
 continue button field: children.revisit
 question: |
@@ -2019,6 +2296,10 @@ continue button field: separation_agreement_intro_screen
 ---
 #################### Objects and attachments #####################
 
+objects:
+  - sa_properties: DAList.using(object_type=DAObject, complete_attribute="complete")
+  - sa_vehicles: DAList.using(object_type=DAObject, complete_attribute="complete")
+---
 objects:
   - a_divorce_agreement_attachment: ALDocument.using(title="1A Divorce Separation Agreement", filename="a_divorce_agreement", has_addendum=False, enabled=True)
   - a_divorce_agreement_Post_interview_instructions: ALDocument.using(title="Instructions", filename="a_divorce_agreement_next_steps", has_addendum=False, enabled=True)
