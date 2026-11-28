@@ -2085,7 +2085,7 @@ subquestion: |
   [Court Service Center](https://www.mass.gov/orgs/court-service-centers)
   before you sign. Court Service Centers are free.
 
-  [Find legal aid](https://www.lsc.gov/what-legal-aid/find-legal-aid)
+  [Find free legal help](https://masslrf.org)
 continue button label: Keep going
 ---
 template: sa_before_you_sign_text
@@ -2096,10 +2096,10 @@ content: |
     becomes part of your divorce judgment.
   * **Some terms can change later, and some usually cannot.** If things change,
     the court can change ${ "the terms about your children and " if has_children else "" }any
-    terms you chose to merge. Terms that survive as a contract, and the way you divide your
-    property, usually cannot be changed.
+    terms you chose to merge. Terms that survive as a contract usually cannot be changed,
+    and the way you divide your property and debts is final.
   * **Each of you may want a lawyer to read it before you sign.**
-    [Find legal aid](https://www.lsc.gov/what-legal-aid/find-legal-aid)
+    [Find free legal help](https://masslrf.org)
 ---
 id: sa before you sign
 continue button field: sa_before_you_sign_reviewed
